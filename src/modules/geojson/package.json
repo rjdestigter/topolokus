@@ -1,0 +1,7 @@
+{
+    "name": "@topolocus/geojson",
+    "version": "0.0.1",
+    "description": "Package for converting geojson back and forth between coordiante systems in Topolocus",
+    "devDependencies": {},
+    "peerDependencies": {}
+}

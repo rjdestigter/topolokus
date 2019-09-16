@@ -1,16 +1,26 @@
+/* @import '~leaflet/dist/leaflet.css'; */
+
+html,
+body,
+#root,
 .App {
-  text-align: center;
+  height: 100%;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
 }
 
 .App-logo {
   animation: App-logo-spin infinite 20s linear;
-  height: 40vmin;
+  height: 40px;
   pointer-events: none;
 }
 
 .App-header {
   background-color: #282c34;
-  min-height: 100vh;
+  height: 100px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -23,10 +33,20 @@
   color: #61dafb;
 }
 
+#map {
+  display: flex;
+  flex: 1 1 auto;
+}
+
+#map>div {
+  flex: 1 1 auto;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

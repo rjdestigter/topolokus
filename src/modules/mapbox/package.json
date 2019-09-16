@@ -1,0 +1,11 @@
+{
+    "name": "@topolocus/mapbox",
+    "version": "0.0.1",
+    "description": "Integration of @topolocus/core with mapbox.",
+    "devDependencies": {
+        "mapbox": "?"
+    },
+    "peerDependencies": {
+        "mapbox": "?"
+    }
+}
