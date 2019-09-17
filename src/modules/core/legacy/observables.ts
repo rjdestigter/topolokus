@@ -66,9 +66,16 @@ export const createMouseUpPosObservable = (mouseUp$: Observable<MouseEvent>) =>
 export const createMouseClickPosObservable = (mouseClick$: Observable<MouseEvent>) =>
     mouseClick$.pipe(map(mapMouseEventToCoords))
 
-export const keyPress$ = fromEvent<KeyboardEvent>(document, 'keypress')
+export const keyPress$ = fromEvent<KeyboardEvent>(document, 'keypress') // .pipe(tap(console.info))
 
-export const enterKey$ = keyPress$.pipe(filter((event: KeyboardEvent) => event.keyCode === 13))
+export const keyPressCode$ = keyPress$.pipe(map(evt => evt.keyCode))
+
+export const ofKeyCode = (keyCode: number) =>
+    keyPressCode$.pipe(filter(pressedKeyCode => pressedKeyCode === keyCode))
+
+export const enterKey$ = ofKeyCode(13)
+
+export const cancelKey$ = ofKeyCode(99)
 
 /**
  * From one observable to a race between 2 others to a observable of Eihter<L, R>

@@ -72,9 +72,11 @@ const Canvas = () => {
 
             const api = withCanvas(elCanvas)
             const onZoomOrMove = () => {
-                console.log('Update.')
                 setCenter(map.getCenter())
             }
+
+            map.dragging.disable()
+            Object.assign(window, { api })
 
             map.addEventListener('zoom move', onZoomOrMove)
 

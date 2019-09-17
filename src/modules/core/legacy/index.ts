@@ -25,11 +25,28 @@ import { coordAll, coordEach, geomEach } from '@turf/meta'
 
 // RxJS
 import { from, fromEvent, Observable, OperatorFunction, race, Subject } from 'rxjs'
-import { debounceTime, filter, map, mapTo, mergeMap, switchMap, switchMapTo, take, takeUntil } from 'rxjs/operators'
+import {
+    debounceTime,
+    filter,
+    map,
+    mapTo,
+    mergeMap,
+    switchMap,
+    switchMapTo,
+    take,
+    takeUntil,
+} from 'rxjs/operators'
 
 // Redux
 import { Either, isRight, left, right } from 'fp-ts/lib/Either'
-import { applyMiddleware, compose, createStore, Reducer, StoreEnhancer, StoreEnhancerStoreCreator } from 'redux'
+import {
+    applyMiddleware,
+    compose,
+    createStore,
+    Reducer,
+    StoreEnhancer,
+    StoreEnhancerStoreCreator,
+} from 'redux'
 import { createLogger } from 'redux-logger'
 import { combineEpics, createEpicMiddleware, Epic } from 'redux-observable'
 
@@ -95,7 +112,8 @@ export default function withCanvas<T>(
                     actionSubject.next(action)
                 },
                 createLogger({
-                    predicate: (_getState, action) => action.type !== ActionTypes.UPDATE_MOUSE_POSITION,
+                    predicate: (_getState, action) =>
+                        action.type !== ActionTypes.UPDATE_MOUSE_POSITION,
                 }),
             ),
         )
@@ -103,7 +121,9 @@ export default function withCanvas<T>(
         const actions$ = observables.toMulticast(from(actionSubject))
 
         const addPolygon$ = actions$.pipe(
-            filter((action): action is DrawPolygonAction => action.type === ActionTypes.DRAW_POLYGON),
+            filter(
+                (action): action is DrawPolygonAction => action.type === ActionTypes.DRAW_POLYGON,
+            ),
         )
 
         addPolygon$.subscribe(() => {
@@ -244,7 +264,11 @@ export default function withCanvas<T>(
 
                 if (lineSnap) {
                     const [lng, lat] = toLngLat([lineSnap.point[0], lineSnap.point[1]])
-                    return { type: 'L', coord: [lineSnap.point[0], lineSnap.point[1], lng, lat], line: lineSnap.line }
+                    return {
+                        type: 'L',
+                        coord: [lineSnap.point[0], lineSnap.point[1], lng, lat],
+                        line: lineSnap.line,
+                    }
                 }
             }
 
@@ -275,7 +299,11 @@ export default function withCanvas<T>(
             context.closePath()
 
             setStyles(
-                { lineWidth: 2, strokeStyle: snap.type === 'P' ? 'Yellow' : snap.type === 'L' ? 'Cyan' : 'Black' },
+                {
+                    lineWidth: 2,
+                    strokeStyle:
+                        snap.type === 'P' ? 'Yellow' : snap.type === 'L' ? 'Cyan' : 'Black',
+                },
                 context,
             )
             context.beginPath()
@@ -311,7 +339,9 @@ export default function withCanvas<T>(
             drawMarker(px, py, ctx)
         }
 
-        observables.mouseMovePos$.subscribe(xy => store.dispatch(actionCreators.updateMousePosition(xy)))
+        observables.mouseMovePos$.subscribe(xy =>
+            store.dispatch(actionCreators.updateMousePosition(xy)),
+        )
 
         /**
          * Draw points and lines currently being drawn
@@ -346,7 +376,11 @@ export default function withCanvas<T>(
             state.pointsInProgress.forEach(p => drawPoint(p))
         }
 
-        const getNextCoord = (coord: number[], selected: LocisState['selectedPoint'], snap: Snap) => {
+        const getNextCoord = (
+            coord: number[],
+            selected: LocisState['selectedPoint'],
+            snap: Snap,
+        ) => {
             if (selected != null) {
                 if (coord[0] === selected[0] && coord[1] === selected[1]) {
                     return snap.coord
@@ -367,7 +401,8 @@ export default function withCanvas<T>(
             console.log(polylikeGeometry)
             // @ts-ignore
             const nextPolyLike = utils.mapPolyLike(geometry => {
-                const polygonsSets = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
+                const polygonsSets =
+                    geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
                 let didChange = false
 
                 let finalPolygonSets = polygonsSets
@@ -478,13 +513,20 @@ export default function withCanvas<T>(
             return state.geoJSON.map(
                 (polyItem, index): PolyItem => {
                     if (index === state.selectedIndex) {
-                        const nextGeoJSON = drawPolyLikeGeometry(polyItem.geoJSON, snap, 'rgba(200,0,0,0.4)')
+                        const nextGeoJSON = drawPolyLikeGeometry(
+                            polyItem.geoJSON,
+                            snap,
+                            'rgba(200,0,0,0.4)',
+                        )
 
                         if (nextGeoJSON !== polyItem.geoJSON) {
                             return {
                                 ...polyItem,
                                 geoJSON: nextGeoJSON,
-                                data: setGeoJson(utils.fromQLikeToPolyLike(nextGeoJSON), polyItem.data),
+                                data: setGeoJson(
+                                    utils.fromQLikeToPolyLike(nextGeoJSON),
+                                    polyItem.data,
+                                ),
                             }
                         }
 
@@ -496,7 +538,10 @@ export default function withCanvas<T>(
                             return {
                                 ...polyItem,
                                 geoJSON: nextGeoJSON,
-                                data: setGeoJson(utils.fromQLikeToPolyLike(nextGeoJSON), polyItem.data),
+                                data: setGeoJson(
+                                    utils.fromQLikeToPolyLike(nextGeoJSON),
+                                    polyItem.data,
+                                ),
                             }
                         }
 
@@ -602,12 +647,14 @@ export default function withCanvas<T>(
         )
 
         const subscribeAddNewPolyItem = () =>
-            observables.mapToUpPosFromEither(drawNewPointUntilEnterKey$).subscribe(mousePosition => {
-                const nextPoint = getSnapPosition(mousePosition).coord
-                store.dispatch(actionCreators.addPointInProgress(nextPoint))
-                draw({ mousePosition })
-                updatePointsDb()
-            })
+            observables
+                .mapToUpPosFromEither(drawNewPointUntilEnterKey$)
+                .subscribe(mousePosition => {
+                    const nextPoint = getSnapPosition(mousePosition).coord
+                    store.dispatch(actionCreators.addPointInProgress(nextPoint))
+                    draw({ mousePosition })
+                    updatePointsDb()
+                })
 
         const subscribeSelectPolyItem = () =>
             observables.mouseClickPos$
@@ -629,7 +676,10 @@ export default function withCanvas<T>(
                         }
                         return
                     }),
-                    filter((selectedIndex): selectedIndex is NonNullable<number> => selectedIndex != null),
+                    filter(
+                        (selectedIndex): selectedIndex is NonNullable<number> =>
+                            selectedIndex != null,
+                    ),
                     take(1),
                 )
                 .subscribe(selectedIndex => {
@@ -647,7 +697,9 @@ export default function withCanvas<T>(
                         const polyItem = state.geoJSON[state.selectedIndex!]
                         const coords = coordAll(polyItem.geoJSON)
 
-                        const match = coords.find(([x, y]) => x === snap.coord[0] && y === snap.coord[1])
+                        const match = coords.find(
+                            ([x, y]) => x === snap.coord[0] && y === snap.coord[1],
+                        )
 
                         if (match) {
                             return snap.coord
@@ -691,7 +743,12 @@ export default function withCanvas<T>(
         // subscribeSelectPolyItem()
         subscribeAddNewPolyItem()
 
-        return { draw, load, store, drawPolygon: () => store.dispatch(actionCreators.drawPolygon()) }
+        return {
+            draw,
+            load,
+            store,
+            drawPolygon: () => store.dispatch(actionCreators.drawPolygon()),
+        }
     }
 
     return
