@@ -75,7 +75,9 @@ export const projectFeature = (project: Project) => (collect: Collect = defaultC
     geometry: projectGeometry(project)(collect)(geom.geometry),
 })
 
-export const projectFeatureCollection = (project: Project) => (collect: Collect = defaultCollect()) => (
+export const projectFeatureCollection = (project: Project) => (
+    collect: Collect = defaultCollect(),
+) => (
     geom: FeatureCollection<Polygon | MultiPolygon>,
 ): QFeatureCollection<QPolygon | QMultiPolygon> => ({
     ...geom,
@@ -118,7 +120,10 @@ export const projectPositions = (project: Project) => (collect: Collect = defaul
             collect.lines.push([collect.coordinates[collect.coordinates.length - 2], point])
 
             if (index === coords.length - 1) {
-                collect.lines.push([point, collect.coordinates[collect.coordinates.length - coords.length]])
+                collect.lines.push([
+                    point,
+                    collect.coordinates[collect.coordinates.length - coords.length],
+                ])
             }
         }
 
@@ -191,9 +196,11 @@ export const findLineSnapPosition = (position: Position, lines: [QPosition, QPos
 
 const fromQPosition2Position = ([, , lng, lat]: QPosition): Position => [lng, lat]
 
-const fromQPositions2Positions = (qPositions: QPosition[]): Position[] => qPositions.map(fromQPosition2Position)
+const fromQPositions2Positions = (qPositions: QPosition[]): Position[] =>
+    qPositions.map(fromQPosition2Position)
 
-const fromQPositionsSets2PositionsSets = (sets: QPosition[][]): Position[][] => sets.map(fromQPositions2Positions)
+const fromQPositionsSets2PositionsSets = (sets: QPosition[][]): Position[][] =>
+    sets.map(fromQPositions2Positions)
 
 const fromQPolygon2Polygon = (qPolygon: QPolygon): Polygon => {
     return {
@@ -217,7 +224,9 @@ const fromQGeometry2Geometry = (geometry: QPolygon | QMultiPolygon) => {
     return fromQPolygon2Polygon(geometry)
 }
 
-const fromQFeature2Feature = (feature: QFeature<QPolygon | QMultiPolygon>): Feature<Polygon | MultiPolygon> => {
+const fromQFeature2Feature = (
+    feature: QFeature<QPolygon | QMultiPolygon>,
+): Feature<Polygon | MultiPolygon> => {
     return {
         ...feature,
         geometry: fromQGeometry2Geometry(feature.geometry),
@@ -237,9 +246,9 @@ export const fromQLikeToPolyLike = (qLike: QPolyLike): PolyLike => {
     return fromQGeometry2Geometry(qLike)
 }
 
-export const mapGeometry = (f: (geometry: QPolygon | QMultiPolygon) => QPolygon | QMultiPolygon) => (
-    geometry: QPolygon | QMultiPolygon,
-): QPolygon | QMultiPolygon => {
+export const mapGeometry = (
+    f: (geometry: QPolygon | QMultiPolygon) => QPolygon | QMultiPolygon,
+) => (geometry: QPolygon | QMultiPolygon): QPolygon | QMultiPolygon => {
     const nextGeometry = f(geometry)
 
     if (nextGeometry !== geometry) {
@@ -264,7 +273,9 @@ export const mapFeature = (f: (geometry: QPolygon | QMultiPolygon) => QPolygon |
     return feature
 }
 
-export const mapFeatureCollection = (f: (geometry: QPolygon | QMultiPolygon) => QPolygon | QMultiPolygon) => (
+export const mapFeatureCollection = (
+    f: (geometry: QPolygon | QMultiPolygon) => QPolygon | QMultiPolygon,
+) => (
     featureCollection: QFeatureCollection<QPolygon | QMultiPolygon>,
 ): QFeatureCollection<QPolygon | QMultiPolygon> => {
     const nextFeatures: QFeature<QPolygon | QMultiPolygon>[] = []
@@ -289,9 +300,9 @@ export const mapFeatureCollection = (f: (geometry: QPolygon | QMultiPolygon) => 
     return featureCollection
 }
 
-export const mapPolyLike = (f: (geometry: QPolygon | QMultiPolygon) => QPolygon | QMultiPolygon) => (
-    polyLike: QPolyLike,
-): QPolyLike => {
+export const mapPolyLike = (
+    f: (geometry: QPolygon | QMultiPolygon) => QPolygon | QMultiPolygon,
+) => (polyLike: QPolyLike): QPolyLike => {
     if (polyLike.type === 'Feature') {
         return mapFeature(f)(polyLike)
     } else if (polyLike.type === 'FeatureCollection') {
@@ -301,7 +312,11 @@ export const mapPolyLike = (f: (geometry: QPolygon | QMultiPolygon) => QPolygon 
     return mapGeometry(f)(polyLike)
 }
 
-export const injectLineSnapPosition = (ring: QPosition[], line: [QPosition, QPosition], point: QPosition) => {
+export const injectLineSnapPosition = (
+    ring: QPosition[],
+    line: [QPosition, QPosition],
+    point: QPosition,
+) => {
     let didInject = false
 
     console.log(ring, line, point)
@@ -332,4 +347,7 @@ export const injectLineSnapPosition = (ring: QPosition[], line: [QPosition, QPos
     return { didInject, ring: nextRing }
 }
 
-export const mapMouseEventToCoords = (evt: MouseEvent): [number, number] => [evt.offsetX, evt.offsetY]
+export const mapMouseEventToCoords = (evt: MouseEvent): [number, number] => [
+    evt.offsetX,
+    evt.offsetY,
+]

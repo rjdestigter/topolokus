@@ -1,11 +1,22 @@
-import { ConnectableObservable, fromEvent, Observable, of, OperatorFunction, race, Subject } from 'rxjs'
-import { filter, map, multicast, publish, switchMapTo, take } from 'rxjs/operators'
+import {
+    ConnectableObservable,
+    fromEvent,
+    Observable,
+    of,
+    OperatorFunction,
+    race,
+    Subject,
+} from 'rxjs'
+import { filter, map, multicast, publish, switchMapTo, take, tap } from 'rxjs/operators'
 
 import { Either, left, right } from 'fp-ts/lib/Either'
 
 import { mapMouseEventToCoords } from './utils'
 
-export const toMulticast = <T>(observable: Observable<T>, connect = true): ConnectableObservable<T> => {
+export const toMulticast = <T>(
+    observable: Observable<T>,
+    connect = true,
+): ConnectableObservable<T> => {
     const publishedObservable: ConnectableObservable<T> = observable.pipe(publish()) as any
 
     if (connect === true) {
@@ -19,8 +30,9 @@ export const toMulticast = <T>(observable: Observable<T>, connect = true): Conne
  *
  * @param event
  */
-export const createEventObservableCreator = <E = MouseEvent>(event: string) => (mouseCanvas: HTMLCanvasElement) =>
-    toMulticast(fromEvent<E>(mouseCanvas, event))
+export const createEventObservableCreator = <E = MouseEvent>(event: string) => (
+    mouseCanvas: HTMLCanvasElement,
+) => toMulticast(fromEvent<E>(mouseCanvas, event))
 
 /**
  *
@@ -54,8 +66,8 @@ export const createMouseUpPosObservable = (mouseUp$: Observable<MouseEvent>) =>
 export const createMouseClickPosObservable = (mouseClick$: Observable<MouseEvent>) =>
     mouseClick$.pipe(map(mapMouseEventToCoords))
 
-export const keyPress$ = fromEvent(document, 'keypress')
-// @ts-ignore
+export const keyPress$ = fromEvent<KeyboardEvent>(document, 'keypress')
+
 export const enterKey$ = keyPress$.pipe(filter((event: KeyboardEvent) => event.keyCode === 13))
 
 /**
@@ -86,8 +98,9 @@ export const mapRight = <L, R>(observable: Observable<Either<L, R>>) =>
         map(rightEither => rightEither.value as R),
     )
 
-export const mapRightTo = <L, R>(observable: Observable<Either<L, R>>) => (operatorFn: OperatorFunction<R, R>) =>
-    mapRight(observable).pipe(operatorFn)
+export const mapRightTo = <L, R>(observable: Observable<Either<L, R>>) => (
+    operatorFn: OperatorFunction<R, R>,
+) => mapRight(observable).pipe(operatorFn)
 
 export const mapLeft = <L, R>(observable: Observable<Either<L, R>>) =>
     observable.pipe(
@@ -95,8 +108,9 @@ export const mapLeft = <L, R>(observable: Observable<Either<L, R>>) =>
         map(leftEither => leftEither.value as L),
     )
 
-export const mapLeftTo = <L, R>(observable: Observable<Either<L, R>>) => (operatorFn: OperatorFunction<L, L>) =>
-    mapLeft(observable).pipe(operatorFn)
+export const mapLeftTo = <L, R>(observable: Observable<Either<L, R>>) => (
+    operatorFn: OperatorFunction<L, L>,
+) => mapLeft(observable).pipe(operatorFn)
 
 export default (mouseCanvas: HTMLCanvasElement, canvas: HTMLCanvasElement) => {
     const mouseMove$ = createMouseMoveObservable(mouseCanvas)
