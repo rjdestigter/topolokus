@@ -1,7 +1,7 @@
-import { State, NoopState, StateType, Pixel, Polygon, Point } from '../types'
+import { State, NoopState, StateType, Polygon, Point } from '../types'
 
 import { AddState } from './types'
-import { AddEventTypes, AddEvent } from './events'
+import { AddEventTypes } from './events'
 import { Event } from '../events'
 
 import isPolygon from '../utils/isPolygon'
@@ -61,7 +61,7 @@ export default (state: State, event: Event): State => {
     // Add point to new polygon currently being drawn
     else if (
         event.type === AddEventTypes.AddPointToNewPolygon &&
-        state.value == StateType.AddPolygon
+        state.value === StateType.AddPolygon
     ) {
         return addPointToNewPolygon(state, event.payload)
     }
@@ -69,14 +69,17 @@ export default (state: State, event: Event): State => {
     // Finish drawing new polygon
     else if (
         event.type === AddEventTypes.SubmitNewPolygon &&
-        state.value == StateType.AddPolygon &&
+        state.value === StateType.AddPolygon &&
         isPolygon(state.newPolygon)
     ) {
         return submitNewPolygon(state, state.newPolygon)
     }
 
     // Cancel drawing a new polygon
-    else if (event.type === AddEventTypes.CancelNewPolygon && state.value == StateType.AddPolygon) {
+    else if (
+        event.type === AddEventTypes.CancelNewPolygon &&
+        state.value === StateType.AddPolygon
+    ) {
         return cancelNewPolygon(state)
     }
 

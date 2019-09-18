@@ -1,5 +1,5 @@
 import { Observable, concat, merge, of } from 'rxjs'
-import { take, repeat, tap, takeUntil, filter, map } from 'rxjs/operators'
+import { take, tap, takeUntil, filter, map } from 'rxjs/operators'
 
 import { AddState } from './types'
 import { fromEventType, cancelKey$, enterKey$ } from '../observables'
@@ -8,7 +8,6 @@ import {
     addPointToNewPolygon,
     submitNewPolygon,
     cancelNewPolygon,
-    AddEvent,
     CancelNewPolygonEvent,
     SubmitNewPolygonEvent,
 } from './events'

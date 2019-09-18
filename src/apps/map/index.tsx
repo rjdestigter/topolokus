@@ -1,18 +1,10 @@
 import React from 'react'
-import {
-    Map as ReactLeafletMap,
-    Popup,
-    TileLayer,
-    useLeaflet,
-    Pane,
-    Circle,
-    LeafletContext,
-} from 'react-leaflet'
+import { Map as ReactLeafletMap, Popup, TileLayer, useLeaflet, Pane, Circle } from 'react-leaflet'
 
 import '../../leaflet/leaflet.css'
-import { canvas, Map as LeafletMap, LeafletEvent } from 'leaflet'
+import { canvas } from 'leaflet'
 
-import { withCanvas } from '../core'
+import { withCanvas } from '../../modules/core'
 
 const position: [number, number] = [51.9085, 5.0509] // [51.505, -0.09]
 const position2: [number, number] = [51.885, 5.0509] // [51.505, -0.09]
@@ -39,9 +31,9 @@ const Map: React.FC = (props: { children?: React.ReactNode }) => (
 
 const createCanvasLayer = (pane?: string) => canvas({ padding: 0, pane })
 
-type CanvasLayer = undefined | ReturnType<typeof createCanvasLayer>
+// type CanvasLayer = undefined | ReturnType<typeof createCanvasLayer>
 
-const toLngLat = (map: LeafletMap) => ([x, y]: number[]): number[] => {
+/* const toLngLat = (map: LeafletMap) => ([x, y]: number[]): number[] => {
     const point = map.containerPointToLatLng([x, y])
     return [point.lng, point.lat]
 }
@@ -50,10 +42,9 @@ const fromLngLat = (map: LeafletMap) => ([lng, lat]: number[]): number[] => {
     const point = map.latLngToContainerPoint([lat, lng])
     return [point.x, point.y]
 }
-
+ */
 const Canvas = () => {
     const context = useLeaflet()
-    const [{ lat, lng }, setCenter] = React.useState({ lat: 0, lng: 0 })
 
     React.useEffect(() => {
         if (context.map != null) {
@@ -71,9 +62,7 @@ const Canvas = () => {
             // const elMouseCanvasLayer: HTMLCanvasElement = (mouseCanvasLayer as any)._container
 
             const api = withCanvas(elCanvas)
-            const onZoomOrMove = () => {
-                setCenter(map.getCenter())
-            }
+            const onZoomOrMove = () => {}
 
             map.dragging.disable()
             Object.assign(window, { api })
@@ -97,17 +86,9 @@ const Canvas = () => {
 }
 
 export default () => {
-    const [toggled, setToggled] = React.useState(true)
-
-    // React.useEffect(() => {
-    //     const timeout = setTimeout(() => {
-    //         setToggled(!toggled)
-    //     }, 50)
-
-    //     return () => {
-    //         clearTimeout(timeout)
-    //     }
-    // }, [toggled])
-
-    return <Map>{toggled ? <Canvas /> : null}</Map>
+    return (
+        <Map>
+            <Canvas />
+        </Map>
+    )
 }

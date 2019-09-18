@@ -1,18 +1,16 @@
 import { fromEvent, merge } from 'rxjs'
-import * as T from './types'
 import { map, tap, repeat, filter } from 'rxjs/operators'
+
+import { StateType, State } from './types'
 import mapMouseEventToCoords from './utils/mapMouseEventToCoords'
 import pencil_ from './draw'
-
 import { Event } from './events'
-
 import transition from './reducers'
+import { stateUpdates$, events$ } from './observables'
+
 import { AddState } from './add/types'
 import { addPolygon } from './add/events'
-
 import makeAddPolygonProgram from './add/observables'
-
-import { stateUpdates$, events$ } from './observables'
 
 export function withCanvas(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d')
@@ -22,16 +20,16 @@ export function withCanvas(canvas: HTMLCanvasElement) {
 
         const dispatch = (event: Event) => events$.next(event)
 
-        let state: T.State = {
+        let state: State = {
             mousePosition: [0, 0],
-            value: T.StateType.Noop,
+            value: StateType.Noop,
             polygons: [],
             hovering: false,
         }
 
-        const history: T.State[] = []
+        const history: State[] = []
 
-        const setState = (nextState: T.State) => {
+        const setState = (nextState: State) => {
             history.push(state)
             state = nextState
             stateUpdates$.next(state)
@@ -68,7 +66,7 @@ export function withCanvas(canvas: HTMLCanvasElement) {
         )
 
         const addPolygonState$ = stateUpdates$.pipe(
-            filter((state): state is AddState => state.value === T.StateType.AddPolygon),
+            filter((state): state is AddState => state.value === StateType.AddPolygon),
         )
 
         const draw$ = stateUpdates$.pipe(
@@ -85,7 +83,7 @@ export function withCanvas(canvas: HTMLCanvasElement) {
                 })
 
                 // Draw potential new polygon
-                if (state.value === T.StateType.AddPolygon) {
+                if (state.value === StateType.AddPolygon) {
                     if (state.newPolygon.length > 1) {
                         pencil.polygon([...state.newPolygon, state.mousePosition])
                         pencil.resetStyles(ctx)

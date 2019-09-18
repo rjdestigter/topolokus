@@ -2,7 +2,7 @@ import React from 'react'
 import logo from './logo.svg'
 import './App.css'
 
-import Map from './modules/map'
+import Map from './apps/map'
 
 const App: React.FC = () => {
     return (
