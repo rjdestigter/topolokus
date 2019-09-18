@@ -1,5 +1,5 @@
 import { Observable, concat, merge, of } from 'rxjs'
-import { take, tap, takeUntil, filter, map } from 'rxjs/operators'
+import { take, tap, takeUntil, filter } from 'rxjs/operators'
 
 import { AddState } from './types'
 import { fromEventType, cancelKey$, enterKey$ } from '../observables'
@@ -8,14 +8,11 @@ import {
     addPointToNewPolygon,
     submitNewPolygon,
     cancelNewPolygon,
-    CancelNewPolygonEvent,
     SubmitNewPolygonEvent,
 } from './events'
 import { Point } from '../types'
 import { Event } from '../events'
 import isNotNr from '../utils/isNotNr'
-import is from '../utils/is'
-import getterOf from '../utils/getterOf'
 
 /** Type describing the function that passes an event to the events$ [[Subject]] */
 type Dispatch = (event: Event) => void
@@ -33,41 +30,37 @@ export const submitNewPolygonEvent$ = fromEventType(AddEventTypes.SubmitNewPolyg
 export const cancelNewPolygonEvent$ = fromEventType(AddEventTypes.CancelNewPolygon)
 
 /**
- *
- * @param dispatch
+ * Creates an observable of a single dispatch SubmitNewPolygon event.
  */
 const makeDispatchSubmitNewPolygon = (dispatch: Dispatch) =>
     of(submitNewPolygon()).pipe(tap(action => dispatch(action)))
 
 /**
- *
- * @param dispatch
+ * Creates an observable of a single dispatch CancelNewPolygon event.
  */
 const makeDispatchCancelNewPolygon = (dispatch: Dispatch) =>
     of(cancelNewPolygon()).pipe(tap(action => dispatch(action)))
 
 /**
- *
- * @param dispatch
+ * Creates an observable that will dispatch the CancelNewPolygon event when
+ * the user pressed the key (c) to cancel the "Add poloygon" operation.
  */
 const makeCancelNewPolygon = (addPolygonState$: Observable<AddState>, dispatch: Dispatch) =>
-    concat(
-        addPolygonState$.pipe(take(1)),
-        cancelKey$.pipe(take(1)),
-        makeDispatchCancelNewPolygon(dispatch),
-    ).pipe(
+    concat(cancelKey$.pipe(take(1)), makeDispatchCancelNewPolygon(dispatch)).pipe(
+        // Filter out the key presses and only emit the CancelNewPolygonEvent event.
         filter(isNotNr),
-        filter((value): value is CancelNewPolygonEvent => value.hasOwnProperty('type')),
-        map(getterOf('type')),
-        filter(is(AddEventTypes.CancelNewPolygon)),
     )
 
 /**
- *
- * @param dispatch
+ * Given an observable that streams state updates to [[AddState]] this function creates
+ * an observable that will dispatch the SubmitNewPolygon event when the user presses
+ * the entery key if the number of points in the polygon is larger than 2.
  */
 const makeSubmitNewPolygon$ = (addPolygonState$: Observable<AddState>, dispatch: Dispatch) =>
     concat(
+        // Await state changes until the new polygon is enough points
+        // to become a valid polygon.
+        // TODO: When the user undoes adding points and reverts to 2 points
         addPolygonState$.pipe(
             filter(state => state.newPolygon.length > 2),
             take(1),
@@ -75,10 +68,13 @@ const makeSubmitNewPolygon$ = (addPolygonState$: Observable<AddState>, dispatch:
         enterKey$.pipe(take(1)),
         makeDispatchSubmitNewPolygon(dispatch),
     ).pipe(
+        // Filter out the key presses and state changes so that this stream
+        // ends up only emitting the SubmitNewPolygonEvent event.
         filter(isNotNr),
-        filter((value): value is SubmitNewPolygonEvent => value.hasOwnProperty('type')),
-        map(getterOf('type')),
-        filter(is(AddEventTypes.SubmitNewPolygon)),
+        filter(
+            (value): value is SubmitNewPolygonEvent =>
+                isNotNr(value) && value.hasOwnProperty('type'),
+        ),
     )
 
 /** Observable for event of type CancelNewPolygon or SubmitNewPolygon */
@@ -89,9 +85,8 @@ const cancelOrSubmitEvent$ = (addPolygonState$: Observable<AddState>, dispatch: 
     )
 
 /**
- *
- * @param onMouseClick$
- * @param dispatch
+ * Creates a program that will add a point to [[AddState]]'s `.newPolygon`
+ * on every mosue click until the cancel or submit events are dispatched.
  */
 export const makeAddPointToPolygon = (
     onMouseClick$: Observable<Point>,
@@ -104,9 +99,7 @@ export const makeAddPointToPolygon = (
     )
 
 /**
- *
- * @param onMouseClick$
- * @param dispatch
+ * Creates a program for adding new polygons.
  */
 export const makeAddPolygonProgram = (
     onMouseClick$: Observable<Point>,

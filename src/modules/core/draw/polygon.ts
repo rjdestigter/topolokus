@@ -8,21 +8,22 @@ export default (marker: (point: Point, ctx?: CanvasRenderingContext2D) => void) 
 ) => (polygon: Polygon, context = ctx) => {
     context.beginPath()
 
-    const [[hx, hy], ...t] = polygon
+    polygon.forEach(ring => {
+        const [[hx, hy], ...t] = ring
 
-    context.moveTo(hx, hy)
+        context.moveTo(hx, hy)
 
-    t.forEach(([x, y]) => {
-        context.lineTo(x, y)
+        t.forEach(([x, y]) => {
+            context.lineTo(x, y)
+        })
+        context.closePath()
     })
 
     context.fillStyle = 'Cyan'
 
     context.fill()
 
-    context.closePath()
-
     context.stroke()
 
-    polygon.forEach(point => marker(point, context))
+    polygon.forEach(ring => ring.forEach(point => marker(point, context)))
 }

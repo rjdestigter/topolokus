@@ -72,7 +72,7 @@ export default (state: State, event: Event): State => {
         state.value === StateType.AddPolygon &&
         isPolygon(state.newPolygon)
     ) {
-        return submitNewPolygon(state, state.newPolygon)
+        return submitNewPolygon(state, [state.newPolygon])
     }
 
     // Cancel drawing a new polygon

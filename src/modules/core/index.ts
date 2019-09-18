@@ -1,12 +1,15 @@
 import { fromEvent, merge } from 'rxjs'
 import { map, tap, repeat, filter } from 'rxjs/operators'
 
-import { StateType, State } from './types'
+import KDBush from 'kdbush'
+
+import { StateType, State, Point, Polygon } from './types'
 import mapMouseEventToCoords from './utils/mapMouseEventToCoords'
 import pencil_ from './draw'
 import { Event } from './events'
 import transition from './reducers'
-import { stateUpdates$, events$ } from './observables'
+import { stateUpdates$, events$, mapFirst, state$, stateChanges$ } from './observables'
+import { pointsS } from './selectors'
 
 import { AddState } from './add/types'
 import { addPolygon } from './add/events'
@@ -20,10 +23,36 @@ export function withCanvas(canvas: HTMLCanvasElement) {
 
         const dispatch = (event: Event) => events$.next(event)
 
+        const mapPointToSnap = ([x, y]: [number, number]): [number, number] => {
+            const pointSnap = pointsS(state)[pointsDb.within(x, y, 10)[0]]
+
+            return pointSnap ? [pointSnap[0], pointSnap[1]] : [x, y]
+        }
+
+        let pointsDb: KDBush.KDBush<Point> =
+            // @ts-ignore
+            new KDBush([])
+
+        const updatePointsDb$ = stateChanges$.pipe(
+            filter(([c, n]) => c.polygons !== n.polygons),
+            mapFirst,
+            map(pointsS),
+            tap(points => {
+                // @ts-ignore
+                pointsDb = new KDBush(points)
+            }),
+        )
+
+        const square: Polygon = [
+            [[100, 100], [300, 100], [300, 300], [100, 300]],
+            // @ts-ignore
+            [[150, 150], [250, 150], [250, 250], [150, 250]].reverse(),
+        ]
+
         let state: State = {
             mousePosition: [0, 0],
             value: StateType.Noop,
-            polygons: [],
+            polygons: [square],
             hovering: false,
         }
 
@@ -32,7 +61,7 @@ export function withCanvas(canvas: HTMLCanvasElement) {
         const setState = (nextState: State) => {
             history.push(state)
             state = nextState
-            stateUpdates$.next(state)
+            stateUpdates$.next([state, history[history.length - 1] || state])
         }
 
         const onMouseClick$ = fromEvent<MouseEvent>(canvas, 'click').pipe(
@@ -44,10 +73,11 @@ export function withCanvas(canvas: HTMLCanvasElement) {
         )
 
         const updateStateWithMousePosition$ = onMouseMoveObservable.pipe(
-            tap(evt => {
+            map(mapPointToSnap),
+            tap(mousePosition => {
                 setState({
                     ...state,
-                    mousePosition: evt,
+                    mousePosition: mousePosition as [number, number],
                 })
             }),
         )
@@ -65,11 +95,11 @@ export function withCanvas(canvas: HTMLCanvasElement) {
             }),
         )
 
-        const addPolygonState$ = stateUpdates$.pipe(
+        const addPolygonState$ = state$.pipe(
             filter((state): state is AddState => state.value === StateType.AddPolygon),
         )
 
-        const draw$ = stateUpdates$.pipe(
+        const draw$ = state$.pipe(
             tap(state => {
                 pencil.resetStyles(ctx)
 
@@ -85,7 +115,7 @@ export function withCanvas(canvas: HTMLCanvasElement) {
                 // Draw potential new polygon
                 if (state.value === StateType.AddPolygon) {
                     if (state.newPolygon.length > 1) {
-                        pencil.polygon([...state.newPolygon, state.mousePosition])
+                        pencil.polygon([[...state.newPolygon, state.mousePosition]])
                         pencil.resetStyles(ctx)
                     } else if (state.newPolygon.length === 1) {
                         pencil.line([...state.newPolygon, state.mousePosition])
@@ -99,25 +129,36 @@ export function withCanvas(canvas: HTMLCanvasElement) {
             reduceActions$,
             updateStateWithMousePosition$,
             // logStateChange$,
-            makeAddPolygonProgram(onMouseClick$, addPolygonState$, dispatch).pipe(repeat()),
+            updatePointsDb$,
+            makeAddPolygonProgram(
+                onMouseClick$.pipe(map(mapPointToSnap)),
+                addPolygonState$,
+                dispatch,
+            ).pipe(repeat()),
             draw$,
         ).subscribe()
 
         return {
             getState: () => state,
             getHistory: () => history,
-            subscribe: (cb: () => void) => {
-                stateUpdates$.subscribe(cb)
-            },
+            // subscribe: (cb: () => void) => {
+            //     stateUpdates$.subscribe(cb)
+            // },
             done: () => {
                 subscription.unsubscribe()
-                stateUpdates$.complete()
             },
             api: {
                 addPolygon: () => dispatch(addPolygon()),
+                load: (polygons: Polygon[]) =>
+                    setState({
+                        ...state,
+                        polygons: [...state.polygons, ...polygons],
+                    }),
             },
         }
     }
 
     throw new Error('Canvas 2D Rendering Context Not Available')
 }
+
+export default withCanvas
