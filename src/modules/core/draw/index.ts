@@ -1,6 +1,7 @@
 import defaultMarker from './marker'
 import defaultPolygon from './polygon'
 import defaultLine from './line'
+import resetStyles from './resetStyles'
 
 interface Api {
     marker: typeof defaultMarker
@@ -17,5 +18,6 @@ export default (api: Partial<Api> = {}) => (ctx: CanvasRenderingContext2D) => {
         marker: finalMarker,
         polygon: finalPolygon,
         line: finalLine,
+        resetStyles,
     }
 }

@@ -1,3 +1,5 @@
+import { AddState } from './add/types'
+
 // Aliases
 export type Pixel = number
 export type Coord = number
@@ -19,47 +21,14 @@ export interface SharedState {
 }
 
 export interface NoopState extends SharedState {
-    type: StateType.Noop
+    value: StateType.Noop
 }
 
-export interface AddPolygonState extends SharedState {
-    type: StateType.AddPolygon
-    newPolygon: Polygon
-}
-
-export type State = NoopState | AddPolygonState
+export type State = NoopState | AddState
 
 // Actions
-export enum ActionTypes {
-    // Adding
-    AddPolygon = 'AddPolygon',
-    AddPointToNewPolygon = 'AddPointToNewPolygon',
-    SubmitNewPolygon = 'SubmitNewPolygon',
-    CancelNewPolygon = 'CancelNewPolygon',
+export enum EventTypes {
     SelectPolygon = 'SelectPolygon',
     EditPolygon = 'EditPolygon',
     RemovePolygon = 'RemovePolygon',
 }
-
-export type AddPolygonAction = {
-    type: ActionTypes.AddPolygon
-}
-
-export type AddPointToNewPolygonAction = {
-    type: ActionTypes.AddPointToNewPolygon
-    payload: [Pixel, Pixel]
-}
-
-export type SubmitNewPolygonAction = {
-    type: ActionTypes.SubmitNewPolygon
-}
-
-export type CancelNewPolygonAction = {
-    type: ActionTypes.CancelNewPolygon
-}
-
-export type Action =
-    | AddPolygonAction
-    | AddPointToNewPolygonAction
-    | SubmitNewPolygonAction
-    | CancelNewPolygonAction
