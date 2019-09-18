@@ -1,5 +1,0 @@
-{
-    "name": "@topolocus/core",
-    "version": "0.0.1",
-    "description": "Core module for drawing points, lines, and polygons to onto canvas."
-}
