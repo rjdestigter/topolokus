@@ -6,22 +6,16 @@ import { canvas, Map as LeafletMap } from 'leaflet'
 
 import topolokus from '../../modules/geojson'
 
-const position: [number, number] = [51.9085, 5.0509] // [51.505, -0.09]
-const position2: [number, number] = [51.885, 5.0509] // [51.505, -0.09]
+const position: [number, number] = [50.251492, -107.428083] // [51.505, -0.09]
+// const position2: [number, number] = [51.885, 5.0509] // [51.505, -0.09]
 
 const Map: React.FC = (props: { children?: React.ReactNode }) => (
-    <ReactLeafletMap center={position} zoom={13}>
+    <ReactLeafletMap center={position} zoom={18}>
         <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         />
-        <Circle center={position2} radius={1000}>
-            <Popup>
-                A pretty CSS3 popup.
-                <br />
-                Easily customizable.
-            </Popup>
-        </Circle>
+
         <Pane name="canvas">
             {props.children}
             <div>xyt</div>
@@ -65,9 +59,11 @@ const Canvas = () => {
                 from: fromLngLat(map),
                 to: toLngLat(map),
             })(elCanvas)
-            const onZoomOrMove = () => {}
+            const onZoomOrMove = () => {
+                api.refresh()
+            }
 
-            map.dragging.disable()
+            // map.dragging.disable()
             Object.assign(window, { api })
 
             map.addEventListener('zoom move', onZoomOrMove)

@@ -1,25 +1,29 @@
 import core from '../core'
-import { Point, Polygon as CorePolygon, Shape } from '../core/types'
+import { Point, ShapeTypes, PolygonShape } from '../core/types'
 
-import { Polygon, MultiPolygon } from '@turf/helpers'
-import { of, Observable } from 'rxjs'
-
-type PolyLike = Polygon | MultiPolygon
-type Data = Polygon // PolyLike | Feature<PolyLike> | FeatureCollection<PolyLike>
-type State = {
-    data: Data[]
-}
-
-const fromPolygon = (polygon: Polygon): CorePolygon =>
-    polygon.coordinates.map(ring => ring.map(([lng, lat]) => [lng, lat]))
+import { of, Subject } from 'rxjs'
+import geojson from '../../data/geosample.json'
 
 type From = (coordinate: number[]) => Point
 type To = (coordinate: Point) => number[]
 
+const convertGeoJson = (from: From): PolygonShape<null>[] =>
+    geojson.features.map(feature => {
+        return {
+            type: ShapeTypes.Polygon,
+            shape: feature.geometry.coordinates.map(ring => ring.map(point => from(point))),
+            meta: null,
+        }
+    })
+
 export default (convert: { from: From; to: To }) => (canvas: HTMLCanvasElement) => {
-    const shapes$: Observable<Shape<any>[]> = of([])
+    const shapes$ = new Subject<PolygonShape<null>[]>()
 
     const api = core(shapes$)(canvas)
 
-    return api
+    const refresh = () => shapes$.next(convertGeoJson(convert.from))
+
+    refresh()
+
+    return Object.assign(api, { refresh })
 }
