@@ -2,9 +2,9 @@ import React from 'react'
 import { Map as ReactLeafletMap, Popup, TileLayer, useLeaflet, Pane, Circle } from 'react-leaflet'
 
 import '../../leaflet/leaflet.css'
-import { canvas } from 'leaflet'
+import { canvas, Map as LeafletMap } from 'leaflet'
 
-import { withCanvas } from '../../modules/core'
+import topolokus from '../../modules/geojson'
 
 const position: [number, number] = [51.9085, 5.0509] // [51.505, -0.09]
 const position2: [number, number] = [51.885, 5.0509] // [51.505, -0.09]
@@ -33,16 +33,16 @@ const createCanvasLayer = (pane?: string) => canvas({ padding: 0, pane })
 
 // type CanvasLayer = undefined | ReturnType<typeof createCanvasLayer>
 
-/* const toLngLat = (map: LeafletMap) => ([x, y]: number[]): number[] => {
+const toLngLat = (map: LeafletMap) => ([x, y]: number[]): [number, number] => {
     const point = map.containerPointToLatLng([x, y])
     return [point.lng, point.lat]
 }
 
-const fromLngLat = (map: LeafletMap) => ([lng, lat]: number[]): number[] => {
+const fromLngLat = (map: LeafletMap) => ([lng, lat]: number[]): [number, number] => {
     const point = map.latLngToContainerPoint([lat, lng])
     return [point.x, point.y]
 }
- */
+
 const Canvas = () => {
     const context = useLeaflet()
 
@@ -61,7 +61,10 @@ const Canvas = () => {
             const elCanvas: HTMLCanvasElement = (canvasLayer as any)._container
             // const elMouseCanvasLayer: HTMLCanvasElement = (mouseCanvasLayer as any)._container
 
-            const api = withCanvas(elCanvas)
+            const api = topolokus({
+                from: fromLngLat(map),
+                to: toLngLat(map),
+            })(elCanvas)
             const onZoomOrMove = () => {}
 
             map.dragging.disable()

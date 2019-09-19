@@ -1,7 +1,6 @@
-import { Subject, fromEvent } from 'rxjs'
-import { map, filter } from 'rxjs/operators'
+import { fromEvent, Observable } from 'rxjs'
+import { map, filter, tap } from 'rxjs/operators'
 
-import { State } from './types'
 import { Event, EventType } from './events'
 
 import { first } from './utils'
@@ -10,37 +9,16 @@ import { first } from './utils'
 export const mapFirst = map(first)
 
 /**
- * Observable streaming current and previous state
+ *
  */
-export const stateUpdates$ = new Subject<[State, State]>()
-
-/**
- * Filters state updates by checking if state has actually changed
- */
-export const stateChanges$ = stateUpdates$.pipe(filter(([c, p]) => c !== p))
-
-/**
- * Maps state changes to actual state
- */
-export const state$ = stateChanges$.pipe(mapFirst)
-
-/** Emits `state.polygons` any time it changes */
-export const polygons$ = state$.pipe(map(state => state.polygons))
+export const makeEventTypes = (events$: Observable<Event>) => events$.pipe(map(event => event.type))
 
 /**
  *
  */
-export const events$ = new Subject<Event>()
-
-/**
- *
- */
-export const eventTypes$ = events$.pipe(map(event => event.type))
-
-/**
- *
- */
-export const fromEventType = <T extends EventType>(eventType: T) =>
+export const makeFromEventType = (eventTypes$: Observable<Event['type']>) => <T extends EventType>(
+    eventType: T,
+) =>
     eventTypes$.pipe(
         filter(
             (dispatchedEventType): dispatchedEventType is T => eventType === dispatchedEventType,
@@ -55,13 +33,20 @@ export const keyPress$ = fromEvent<KeyboardEvent>(document, 'keypress') // .pipe
 /**
  *
  */
-export const keyPressCode$ = keyPress$.pipe(map(evt => evt.keyCode))
+export const keyPressCode$ = keyPress$.pipe(
+    map(evt => evt.keyCode),
+    tap(k => console.warn(k)),
+)
 
 /**
  *
  */
-export const ofKeyCode = (keyCode: number) =>
-    keyPressCode$.pipe(filter(pressedKeyCode => pressedKeyCode === keyCode))
+export const ofKeyCode = (keyCode: number | number[]) =>
+    keyPressCode$.pipe(
+        filter(pressedKeyCode =>
+            Array.isArray(keyCode) ? keyCode.includes(pressedKeyCode) : pressedKeyCode === keyCode,
+        ),
+    )
 
 /**
  *

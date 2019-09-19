@@ -2,13 +2,14 @@ import { Observable, concat, merge, of } from 'rxjs'
 import { take, tap, takeUntil, filter } from 'rxjs/operators'
 
 import { AddState } from './types'
-import { fromEventType, cancelKey$, enterKey$ } from '../observables'
+import { cancelKey$, enterKey$, ofKeyCode, makeFromEventType } from '../observables'
 import {
     AddEventTypes,
     addPointToNewPolygon,
     submitNewPolygon,
     cancelNewPolygon,
     SubmitNewPolygonEvent,
+    addPolygon,
 } from './events'
 import { Point } from '../types'
 import { Event } from '../events'
@@ -18,16 +19,21 @@ import isNotNr from '../utils/isNotNr'
 type Dispatch = (event: Event) => void
 
 /** Observable for event of type  AddPolygon */
-export const addPolygonEvent$ = fromEventType(AddEventTypes.AddPolygon)
+export const makeAddPolygonEvent$ = (fromEventType: ReturnType<typeof makeFromEventType>) =>
+    fromEventType(AddEventTypes.AddPolygon)
 
 /** Observable for event of type  AddPointToNewPolygon */
-export const addPointToNewPolygonEvent$ = fromEventType(AddEventTypes.AddPointToNewPolygon)
+export const makeAddPointToNewPolygonEvent$ = (
+    fromEventType: ReturnType<typeof makeFromEventType>,
+) => fromEventType(AddEventTypes.AddPointToNewPolygon)
 
 /** Observable for event of type  SubmitNewPolygon */
-export const submitNewPolygonEvent$ = fromEventType(AddEventTypes.SubmitNewPolygon)
+export const makeSubmitNewPolygonEvent$ = (fromEventType: ReturnType<typeof makeFromEventType>) =>
+    fromEventType(AddEventTypes.SubmitNewPolygon)
 
 /** Observable for event of type  CancelNewPolygon */
-export const cancelNewPolygonEvent$ = fromEventType(AddEventTypes.CancelNewPolygon)
+export const makeCancelNewPolygonEvent$ = (fromEventType: ReturnType<typeof makeFromEventType>) =>
+    fromEventType(AddEventTypes.CancelNewPolygon)
 
 /**
  * Creates an observable of a single dispatch SubmitNewPolygon event.
@@ -104,10 +110,19 @@ export const makeAddPointToPolygon = (
 export const makeAddPolygonProgram = (
     onMouseClick$: Observable<Point>,
     addPolygonState$: Observable<AddState>,
+    addPolygonEvent$: Observable<AddEventTypes.AddPolygon>,
     dispatch: (event: Event) => void,
 ) =>
     concat(
-        addPolygonEvent$.pipe(take(1)),
+        merge(
+            concat(
+                // Await pressing key "a" or "A"
+                ofKeyCode([65, 97]).pipe(take(1)),
+                // Dispatch "AddPolygon" event
+                of(addPolygon()).pipe(tap(dispatch)),
+            ).pipe(filter(isNotNr)),
+            addPolygonEvent$,
+        ).pipe(take(1)),
         makeAddPointToPolygon(onMouseClick$, addPolygonState$, dispatch),
     )
 

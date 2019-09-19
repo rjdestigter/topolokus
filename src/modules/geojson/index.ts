@@ -1,17 +1,11 @@
-import withCoreCanvas from '../core'
-import { state$ } from '../core/observables'
-import { Point, Polygon as CorePolygon } from '../core/types'
+import core from '../core'
+import { Point, Polygon as CorePolygon, Shape } from '../core/types'
 
-import {
-    Polygon,
-    MultiPolygon,
-    Feature,
-    FeatureCollection,
-    GeometryCollection,
-} from '@turf/helpers'
+import { Polygon, MultiPolygon } from '@turf/helpers'
+import { of, Observable } from 'rxjs'
 
 type PolyLike = Polygon | MultiPolygon
-type Data = PolyLike | Feature<PolyLike> | FeatureCollection<PolyLike>
+type Data = Polygon // PolyLike | Feature<PolyLike> | FeatureCollection<PolyLike>
 type State = {
     data: Data[]
 }
@@ -23,12 +17,9 @@ type From = (coordinate: number[]) => Point
 type To = (coordinate: Point) => number[]
 
 export default (convert: { from: From; to: To }) => (canvas: HTMLCanvasElement) => {
-    const api = withCoreCanvas(canvas)
+    const shapes$: Observable<Shape<any>[]> = of([])
 
-    let state: State = {
-        data: [],
-    }
+    const api = core(shapes$)(canvas)
 
-    state = state
     return api
 }

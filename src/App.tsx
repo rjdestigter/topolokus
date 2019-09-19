@@ -1,5 +1,4 @@
 import React from 'react'
-import logo from './logo.svg'
 import './App.css'
 
 import Map from './apps/map'
@@ -7,9 +6,32 @@ import Map from './apps/map'
 const App: React.FC = () => {
     return (
         <div className="App">
-            <header className="App-header">
-                <img src={logo} className="App-logo" alt="logo" />
-            </header>
+            <div className="App-header">
+                <p>
+                    <button
+                        onClick={
+                            // @ts-ignore
+                            () => api.api.addPolygon()
+                        }
+                    >
+                        ADD POLYGON
+                    </button>
+                </p>
+                <ol>
+                    <li>
+                        Press <i>&quot;a&quot;</i> or click the <i>&quot;Add Polygon&quot;</i>{' '}
+                        button to start drawing.
+                    </li>
+                    <li>
+                        Press <i>&quot;Enter&quot;</i> to finish drawing. You can only finish after
+                        at least 3 points are drawn.
+                    </li>
+                    <li>
+                        Press <i>&quot;c&quot;</i> to cancel the operation.
+                    </li>
+                    <li>Snapping is supported</li>
+                </ol>
+            </div>
             <div id="map">
                 <Map />
             </div>

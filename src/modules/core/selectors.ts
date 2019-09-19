@@ -1,29 +1,49 @@
-import { State, Point, StateType } from './types'
-import { memoize } from './utils'
+import { State, Point, Shape, StateType, PointShape, LineShape, PolygonShape } from './types'
+import { memoize, isPolygonShape, isPointShape, isLineShape, emptyArray } from './utils'
 
-const emptyArray: any[] = []
+/**
+ * From `[Polygon, T] -> [Polygon]
+ */
+export const filterPolygonShapes = memoize(<T>(shapes: Shape<T>[]): PolygonShape<T>[] =>
+    shapes.filter(isPolygonShape),
+)
 
-export const polygonsS = (state: State) => state.polygons
+/** TODO */
+export const filterLineShapes = memoize(<T>(shapes: Shape<T>[]): LineShape<T>[] =>
+    shapes.filter(isLineShape),
+)
 
-export const newPolygonS = (state: State): Point[] => {
+/** TODO */
+export const filterPointShapes = memoize(<T>(shapes: Shape<T>[]): PointShape<T>[] =>
+    shapes.filter(isPointShape),
+)
+
+/**
+ * Redduces a list of [[PointShape]] into a list of points
+ */
+export const convertPointShapesToListOfPoints = memoize(<T>(pointShapes: PointShape<T>[]) =>
+    pointShapes.map(pointShape => pointShape.shape),
+)
+export const convertLineShapesToListOfLines = memoize(<T>(lineShapes: LineShape<T>[]) =>
+    lineShapes.flatMap(lineShape => lineShape.shape),
+)
+export const convertPolygonShapesToListOfPolygons = memoize(<T>(polygonShapes: PolygonShape<T>[]) =>
+    polygonShapes.flatMap(polygonShape => polygonShape.shape.flat()),
+)
+
+/**
+ * Redduces a list of polygons into a list of points
+ */
+export const convertShapesToListOfPoints = memoize(<T>(shapes: Shape<T>[]): Point[] => [
+    ...convertPointShapesToListOfPoints(filterPointShapes(shapes)),
+    ...convertLineShapesToListOfLines(filterLineShapes(shapes)),
+    ...convertPolygonShapesToListOfPolygons(filterPolygonShapes(shapes)),
+])
+
+export const newPolygonS = (state: State<any>): Point[] => {
     if (state.value === StateType.AddPolygon) {
         return state.newPolygon
     }
 
     return emptyArray
 }
-
-export const pointsS = memoize((state: State): Point[] =>
-    polygonsS(state).reduce(
-        (acc, polygon) => {
-            polygon.forEach(line => {
-                line.forEach(point => {
-                    acc.push(point)
-                })
-            })
-
-            return acc
-        },
-        emptyArray as Point[],
-    ),
-)

@@ -14,23 +14,31 @@ body,
 
 .App-logo {
   animation: App-logo-spin infinite 20s linear;
-  height: 40px;
+  height: 300px;
   pointer-events: none;
 }
 
 .App-header {
   background-color: #282c34;
-  height: 100px;
-  display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  font-size: 14px;
   color: white;
+  padding: 5px 25px;
+}
+
+ul,
+ol {
+  padding-left: 20px;
+  /* padding: 0; */
+  /* margin: 0; */
 }
 
 .App-link {
   color: #61dafb;
+}
+
+i {
+  display: inline !important;
 }
 
 #map {
