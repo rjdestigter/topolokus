@@ -1,11 +1,31 @@
-import { PointShape, PolygonShape, ShapeTypes } from '../types'
+import { PointShape, PolygonShape } from '../types'
+
+const colors = [
+    (n = 1) => `rgba(255,0,0,${n})`,
+    (n = 1) => `rgba(0,255,0,${n})`,
+    (n = 1) => `rgba(0,0,255,${n})`,
+    (n = 1) => `rgba(255,255,0,${n})`,
+    (n = 1) => `rgba(0,255,255,${n})`,
+    (n = 1) => `rgba(255,0,255,${n})`,
+    (n = 1) => `rgba(255,127,80,${n})`,
+    (n = 1) => `rgba(255,20,147,${n})`,
+    (n = 1) => `rgba(255,0,0,${n})`,
+    (n = 1) => `rgba(0,255,0,${n})`,
+    (n = 1) => `rgba(0,0,255,${n})`,
+    (n = 1) => `rgba(255,255,0,${n})`,
+    (n = 1) => `rgba(0,255,255,${n})`,
+    (n = 1) => `rgba(255,0,255,${n})`,
+    (n = 1) => `rgba(255,127,80,${n})`,
+    (n = 1) => `rgba(255,20,147,${n})`,
+]
 
 /**
  * Draw the position of the mouse as circle on canvas
  */
-export default <T>(marker: (point: PointShape<T>, ctx?: CanvasRenderingContext2D) => void) => (
-    ctx: CanvasRenderingContext2D,
-) => (polygon: PolygonShape<T>, context = ctx) => {
+export default <T extends { hovering: boolean }>(
+    marker: (point: PointShape<T>, ctx?: CanvasRenderingContext2D) => void,
+) => (ctx: CanvasRenderingContext2D) => (polygon: PolygonShape<T>, context = ctx) => {
+    //
     context.beginPath()
 
     polygon.shape.forEach(ring => {
@@ -19,15 +39,20 @@ export default <T>(marker: (point: PointShape<T>, ctx?: CanvasRenderingContext2D
         context.closePath()
     })
 
-    context.fillStyle = 'Cyan'
+    context.fillStyle =
+        // @ts-ignore
+        (colors[polygon.meta.id] && colors[polygon.meta.id](polygon.meta.hovering ? 1 : 0.3)) ||
+        `rgba(255, 255, 255, ${polygon.meta.hovering ? 1 : 0.3})`
+    context.strokeStyle = 'cyan'
+    context.lineWidth = 2
 
     context.fill()
 
     context.stroke()
 
-    polygon.shape.forEach(ring =>
-        ring.forEach(point =>
-            marker({ shape: point, meta: polygon.meta, type: ShapeTypes.Point }, context),
-        ),
-    )
+    // polygon.shape.forEach(ring =>
+    //     ring.forEach(point =>
+    //         marker({ shape: point, meta: polygon.meta, type: ShapeTypes.Point }, context),
+    //     ),
+    // )
 }

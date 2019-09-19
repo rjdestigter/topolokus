@@ -8,7 +8,15 @@ import turfBooleanPointInPolygon from '@turf/boolean-point-in-polygon'
 import { Feature, FeatureCollection, MultiPolygon, Polygon } from '@turf/helpers'
 import { geomEach } from '@turf/meta'
 
-import { PolyItem, PolyLike, QFeature, QFeatureCollection, QMultiPolygon, QPolygon, QPolyLike } from './types'
+import {
+    PolyItem,
+    PolyLike,
+    QFeature,
+    QFeatureCollection,
+    QMultiPolygon,
+    QPolygon,
+    QPolyLike,
+} from './types'
 
 type RBush<T = {}> = new (...args: any) => rbush.RBush<T>
 

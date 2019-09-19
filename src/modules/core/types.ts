@@ -68,6 +68,8 @@ export enum StateType {
 export interface SharedState<T> {
     readonly mousePosition: [Pixel, Pixel]
     readonly hovering: boolean
+    // readonly hoverIndex: number
+    readonly selectedIndices: number[]
 }
 
 export interface NoopState {

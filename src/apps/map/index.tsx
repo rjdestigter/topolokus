@@ -1,18 +1,22 @@
 import React from 'react'
 import { Map as ReactLeafletMap, Popup, TileLayer, useLeaflet, Pane, Circle } from 'react-leaflet'
+import * as _ from 'lodash'
 
 import '../../leaflet/leaflet.css'
 import { canvas, Map as LeafletMap } from 'leaflet'
+import { geoJSON } from 'leaflet'
 
 import topolokus from '../../modules/geojson'
 
-const position: [number, number] = [50.251492, -107.428083] // [51.505, -0.09]
 // const position2: [number, number] = [51.885, 5.0509] // [51.505, -0.09]
 
+import geojson from '../../data/geosample.json'
+
+const position: [number, number] = [50.250492, -107.428083] // [51.505, -0.09]
 const Map: React.FC = (props: { children?: React.ReactNode }) => (
-    <ReactLeafletMap center={position} zoom={18}>
+    <ReactLeafletMap center={position} zoom={17}>
         <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         />
 
@@ -28,12 +32,12 @@ const createCanvasLayer = (pane?: string) => canvas({ padding: 0, pane })
 // type CanvasLayer = undefined | ReturnType<typeof createCanvasLayer>
 
 const toLngLat = (map: LeafletMap) => ([x, y]: number[]): [number, number] => {
-    const point = map.containerPointToLatLng([x, y])
+    const point = map.layerPointToLatLng([x, y])
     return [point.lng, point.lat]
 }
 
 const fromLngLat = (map: LeafletMap) => ([lng, lat]: number[]): [number, number] => {
-    const point = map.latLngToContainerPoint([lat, lng])
+    const point = map.latLngToLayerPoint([lat, lng])
     return [point.x, point.y]
 }
 
@@ -47,7 +51,9 @@ const Canvas = () => {
             // const mouseCanvasLayer = createCanvasLayer(context.pane)
             canvasLayer.addTo(context.map)
             // mouseCanvasLayer.addTo(context.map)
-            // const layer = circle(position, { renderer: canvasLayer, radius: 1000 })
+            // @ts-ignore
+            // const layer = geoJSON(geojson.features[0].geometry as any, { renderer: canvasLayer })
+
             // layer.addTo(context.map)
 
             Object.assign(window, { canvasLayer })
@@ -59,17 +65,16 @@ const Canvas = () => {
                 from: fromLngLat(map),
                 to: toLngLat(map),
             })(elCanvas)
-            const onZoomOrMove = () => {
-                api.refresh()
-            }
+
+            const onZoomOrMove = _.debounce(api.refresh)
 
             // map.dragging.disable()
             Object.assign(window, { api })
 
-            map.addEventListener('zoom move', onZoomOrMove)
+            map.addEventListener('moveend zoomend', onZoomOrMove)
 
             return () => {
-                map.removeEventListener('zoom move', onZoomOrMove)
+                map.removeEventListener('moveend zoomend', onZoomOrMove)
                 map.removeLayer(canvasLayer)
                 // map.removeLayer(mouseCanvasLayer)
                 api.done()
