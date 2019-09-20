@@ -1,5 +1,15 @@
-import { fromEvent, merge, Subject, Observable } from 'rxjs'
-import { map, tap, repeat, filter, scan, mapTo } from 'rxjs/operators'
+import { fromEvent, merge, Subject, Observable, of, combineLatest } from 'rxjs'
+import {
+    map,
+    tap,
+    repeat,
+    filter,
+    scan,
+    mapTo,
+    switchMap,
+    startWith,
+    switchMapTo,
+} from 'rxjs/operators'
 
 import KDBush from 'kdbush'
 import createPolyBush from './rbush'
@@ -10,21 +20,21 @@ import pencil_ from './pencils'
 import { Event } from './events'
 import transition from './reducers'
 import { mapFirst, ofKeyCode, makeFromEventType, makeEventTypes } from './observables'
-import { convertShapesToListOfPoints, filterPolygonShapes, newPolygonS } from './selectors'
+import { convertShapesToListOfPoints, filterPolygonShapes } from './selectors'
 
 import { AddState } from './add/types'
-import { addPolygon, AddEventTypes } from './add/events'
+import { addPolygon, AddEventTypes, SubmitNewPolygonEvent } from './add/events'
 import makeAddPolygonProgram from './add/observables'
 import { isPolygonShape } from './utils'
-import combineLatest from './utils/combineLatest'
 import { toMulticast } from './legacy/observables'
 
-let cycle = 1
+// let cycle = 1
+// let mousemoveIndex = 0
 
 export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElement) => {
     const ctx = canvas.getContext('2d')
 
-    console.group(`Cycle ${cycle}`)
+    // console.group(`Cycle ${cycle}`)
 
     if (ctx != null) {
         /**
@@ -73,12 +83,6 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
          */
         const stateChanges$ = stateUpdates$.pipe(filter(([c, p]) => c !== p))
 
-        const newPolygonUpdates$ = stateChanges$.pipe(
-            map(([c, p]) => [newPolygonS(c), newPolygonS(p)] as const),
-            filter(([a, b]) => a !== b),
-            map(([a]) => a),
-        )
-
         /**
          * Maps state changes to actual state
          */
@@ -124,7 +128,7 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
         let future: State<T>[] = []
 
         const setState = (nextState: State<T>, affectsHistory = true) => {
-            console.time('setState')
+            // console.time('setState')
             const prev = state
 
             if (affectsHistory) {
@@ -134,7 +138,7 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
 
             state = nextState
             stateUpdates$.next([state, prev])
-            console.timeEnd('setState')
+            // console.timeEnd('setState')
         }
 
         const undo = () => {
@@ -176,6 +180,7 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
         const onMouseUp = fromEvent<MouseEvent>(canvas, 'mouseup')
 
         const onMouseMove$ = fromEvent<MouseEvent>(canvas, 'mousemove').pipe(
+            // tap(() => console.time(`mousemove:${mousemoveIndex}`)),
             map(e => mapMouseEventToCoords(e)),
         )
 
@@ -211,15 +216,23 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
 
         const hoverIndex$ = toMulticast(
             mousePosition$.pipe(
+                // tap(() => console.time('hoverIndex')),
                 map(point => polyDb.searchPoint(point).map(item => item.index)),
                 scan((acc, next) => [acc[1], next] as const, [[], []] as readonly [
                     number[],
                     number[],
                 ]),
+                // tap(() => console.timeEnd('hoverIndex')),
                 // tap(n => console.log(n)),
                 filter(([a, b]) => a.length !== b.length || a.some((n, index) => n !== b[index])),
                 map(([, b]) => b),
             ),
+        )
+
+        const value$ = state$.pipe(map(state => state.value))
+
+        const hoverIndexNoop$ = value$.pipe(
+            switchMap(value => (value === StateType.Noop ? hoverIndex$ : of([] as number[]))),
         )
 
         const updateStateWithMousePosition$ = onMouseMoveTranslated$.pipe(
@@ -259,22 +272,33 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
             mapTo(true),
         )
 
+        const addPolygonProgram$ = makeAddPolygonProgram(
+            onMouseClickTranslated$.pipe(map(mapPointToSnap)),
+            fromEventType(AddEventTypes.AddPolygon),
+            dispatch,
+        ).pipe(repeat())
+
         const newPolygonAndShapes$ = combineLatest(
-            [] as Point[],
-            [] as Shape<T>[],
-            [] as number[],
-            true,
-        )(newPolygonUpdates$, shapes$, hoverIndex$, addMode$)
+            addPolygonProgram$.pipe(startWith([] as Point[])),
+            shapes$.pipe(startWith([] as Shape<T>[])),
+            hoverIndexNoop$.pipe(startWith([] as number[])),
+            // addMode$,
+        )
 
         const draw$ = newPolygonAndShapes$.pipe(
-            tap(([newPolygon, shapes, hoverIndices]) => {
+            tap(data => {
+                const [newPolygon, shapes, hoverIndices] = data
                 pencil.resetStyles(ctx)
 
                 // Clear the canvas
+                ctx.save()
                 ctx.clearRect(0, 0, canvas.width, canvas.height)
-
+                // Use the identity matrix while clearing the canvas
+                ctx.setTransform(1, 0, 0, 1, 0, 0)
+                ctx.clearRect(0, 0, canvas.width, canvas.height)
+                ctx.restore()
                 // console.log(hoverIndices)
-                // Draw existing polygons in state
+                // Draw existing polygons fin state
 
                 const polygons = filterPolygonShapes(shapes)
                 polygons.forEach((shape, index) => {
@@ -284,28 +308,29 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
                 })
 
                 // Draw potential new polygon
-                if (state.value === StateType.AddPolygon) {
-                    if (newPolygon.length > 1) {
-                        pencil.polygon({
-                            type: ShapeTypes.Polygon,
-                            shape: [[...newPolygon, state.mousePosition]],
-                            // TODO Provide a way to create T for new polygons
-                            meta: { id: -1, hovering: true },
-                        })
-                        pencil.resetStyles(ctx)
-                    } else if (state.newPolygon.length === 1) {
-                        pencil.line({
-                            type: ShapeTypes.Line,
-                            shape: [...state.newPolygon, state.mousePosition],
-                            meta: (undefined as any) as T,
-                        })
-                        pencil.resetStyles(ctx)
-                    }
+                // if (state.value === StateType.AddPolygon) {
+                if (newPolygon.length > 1) {
+                    pencil.polygon({
+                        type: ShapeTypes.Polygon,
+                        shape: [[...newPolygon, state.mousePosition]],
+                        // TODO Provide a way to create T for new polygons
+                        meta: { id: -1, hovering: true },
+                    })
+                    pencil.resetStyles(ctx)
+                } else if (newPolygon.length === 1) {
+                    pencil.line({
+                        type: ShapeTypes.Line,
+                        shape: [...newPolygon, state.mousePosition],
+                        meta: (undefined as any) as T,
+                    })
+                    pencil.resetStyles(ctx)
                 }
+                // }
 
-                console.groupEnd()
-                cycle += 1
-                console.groupCollapsed(`Cycle ${cycle}`)
+                // console.timeEnd(`mousemove:${mousemoveIndex++}`)
+                // console.groupEnd()
+                // cycle += 1
+                // console.groupCollapsed(`Cycle ${cycle}`)
             }),
         )
 
@@ -316,12 +341,6 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
             updatePointsDb$,
             ofKeyCode([117, 85]).pipe(tap(undo)),
             ofKeyCode([114, 82]).pipe(tap(redo)),
-            makeAddPolygonProgram(
-                onMouseClickTranslated$.pipe(map(mapPointToSnap)),
-                addPolygonState$,
-                fromEventType(AddEventTypes.AddPolygon),
-                dispatch,
-            ).pipe(repeat()),
             draw$,
         ).subscribe()
 
@@ -336,6 +355,12 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
             },
             api: {
                 addPolygon: () => dispatch(addPolygon()),
+                onAdd$: events$.pipe(
+                    filter(
+                        (event): event is SubmitNewPolygonEvent =>
+                            event.type === AddEventTypes.SubmitNewPolygon,
+                    ),
+                ),
             },
         }
     }

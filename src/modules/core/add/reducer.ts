@@ -15,7 +15,7 @@ export const fromNoopToAddPolygon = <T>(
     return {
         ...state,
         value: StateType.AddPolygon,
-        newPolygon: [],
+        // newPolygon: [],
     }
 }
 
@@ -29,7 +29,7 @@ export const addPointToNewPolygon = <T>(
     return {
         ...state,
         value: StateType.AddPolygon,
-        newPolygon: [...state.newPolygon, point],
+        // newPolygon: [...state.newPolygon, point],
     }
 }
 
@@ -38,7 +38,6 @@ export const addPointToNewPolygon = <T>(
  */
 export const submitNewPolygon = <T>(
     state: SharedState<T> & AddState,
-    // polygon: Polygon,
 ): SharedState<T> & NoopState => {
     return {
         ...state,
@@ -79,8 +78,7 @@ export default <T>(state: State<T>, event: Event): State<T> => {
     // Finish drawing new polygon
     else if (
         event.type === AddEventTypes.SubmitNewPolygon &&
-        state.value === StateType.AddPolygon &&
-        isPolygon(state.newPolygon)
+        state.value === StateType.AddPolygon
     ) {
         return submitNewPolygon(state)
     }

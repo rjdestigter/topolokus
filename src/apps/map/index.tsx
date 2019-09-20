@@ -12,7 +12,7 @@ import topolokus from '../../modules/geojson'
 
 import geojson from '../../data/geosample.json'
 
-const position: [number, number] = [50.250492, -107.428083] // [51.505, -0.09]
+const position: [number, number] = [50.250492, -107.428083 + 0] // [51.505, -0.09]
 const Map: React.FC = (props: { children?: React.ReactNode }) => (
     <ReactLeafletMap center={position} zoom={17}>
         <TileLayer
@@ -37,7 +37,7 @@ const toLngLat = (map: LeafletMap) => ([x, y]: number[]): [number, number] => {
 }
 
 const fromLngLat = (map: LeafletMap) => ([lng, lat]: number[]): [number, number] => {
-    const point = map.latLngToLayerPoint([lat, lng])
+    const point = map.latLngToLayerPoint([lat, lng + 0])
     return [point.x, point.y]
 }
 

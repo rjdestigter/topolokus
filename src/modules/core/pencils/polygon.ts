@@ -41,10 +41,14 @@ export default <T extends { hovering: boolean }>(
 
     context.fillStyle =
         // @ts-ignore
-        (colors[polygon.meta.id] && colors[polygon.meta.id](polygon.meta.hovering ? 1 : 0.3)) ||
-        `rgba(255, 255, 255, ${polygon.meta.hovering ? 1 : 0.3})`
-    context.strokeStyle = 'cyan'
-    context.lineWidth = 2
+        (colors[polygon.meta.id] && colors[polygon.meta.id](polygon.meta.hovering ? 1 : 0.5)) ||
+        `rgba(255, 255, 255, ${polygon.meta.hovering ? 1 : 0.5})`
+    context.strokeStyle =
+        // @ts-ignore
+        (colors[polygon.meta.id] && colors[polygon.meta.id](1)) || `rgba(255, 255, 255, 1)`
+
+    context.lineWidth = 1
+    context.lineJoin = 'round'
 
     context.fill()
 

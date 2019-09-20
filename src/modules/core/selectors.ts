@@ -40,10 +40,10 @@ export const convertShapesToListOfPoints = memoize(<T>(shapes: Shape<T>[]): Poin
     ...convertPolygonShapesToListOfPolygons(filterPolygonShapes(shapes)),
 ])
 
-export const newPolygonS = (state: State<any>): Point[] => {
-    if (state.value === StateType.AddPolygon) {
-        return state.newPolygon
-    }
+// export const newPolygonS = (state: State<any>): Point[] => {
+//     if (state.value === StateType.AddPolygon) {
+//         return state.newPolygon
+//     }
 
-    return emptyArray
-}
+//     return emptyArray
+// }

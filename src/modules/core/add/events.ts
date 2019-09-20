@@ -1,4 +1,4 @@
-import { Point } from '../types'
+import { Point, Polygon } from '../types'
 
 /**
  * Event type descriptors for the "Add Polygon" process
@@ -30,6 +30,7 @@ export type AddPointToNewPolygonEvent = {
  */
 export type SubmitNewPolygonEvent = {
     type: AddEventTypes.SubmitNewPolygon
+    payload: Polygon
 }
 
 /**
@@ -64,8 +65,9 @@ export const addPointToNewPolygon = (point: Point): AddPointToNewPolygonEvent =>
 /**
  * Event creator instructing the program the user has finished creating a new polygon.
  */
-export const submitNewPolygon = (): SubmitNewPolygonEvent => ({
+export const submitNewPolygon = (polygon: Polygon): SubmitNewPolygonEvent => ({
     type: AddEventTypes.SubmitNewPolygon,
+    payload: polygon,
 })
 
 /**

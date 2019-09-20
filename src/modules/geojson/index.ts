@@ -8,9 +8,11 @@ import { tap } from 'rxjs/operators'
 type From = (coordinate: number[]) => Point
 type To = (coordinate: Point) => number[]
 
+const data: typeof geojson.features = geojson.features
+
 const convertGeoJson = (from: From): PolygonShape<number>[] =>
-    geojson.features
-        .filter(feature => feature.properties.ZoneID < 400)
+    data
+        .filter(feature => true || feature.properties.ZoneID % 2 === 0)
         .map(feature => {
             return {
                 type: ShapeTypes.Polygon,
@@ -25,6 +27,28 @@ export default (convert: { from: From; to: To }) => (canvas: HTMLCanvasElement) 
     const api = core(shapes$.pipe(tap(() => console.info('Updating after zoom/pan'))))(canvas)
 
     const refresh = () => shapes$.next(convertGeoJson(convert.from))
+
+    api.api.onAdd$
+        .pipe(
+            tap(event => {
+                const coordinates = event.payload[0].map(px => convert.to(px))
+                coordinates.push(coordinates[0])
+                data.push({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [coordinates],
+                    },
+                    // @ts-ignore
+                    properties: {
+                        ZoneID: 2,
+                    },
+                })
+
+                refresh()
+            }),
+        )
+        .subscribe()
 
     refresh()
 

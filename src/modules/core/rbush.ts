@@ -20,9 +20,9 @@ type Item = ReturnType<typeof polygonToItem>
 type Tree = rbush.RBush<Item>
 
 const insertPolygons = (tree: Tree, state: { count: number }) => (polygons: Polygon[]) => {
-    console.log(`Count: ${state.count}`)
+    // console.log(`Count: ${state.count}`)
     const items = polygons.map((polygon, index) => {
-        console.info(index, state.count, index + state.count + 1)
+        // console.info(index, state.count, index + state.count + 1)
         return polygonToItem(polygon, index + state.count + 1)
     })
     state.count += polygons.length
