@@ -65,19 +65,12 @@ export enum StateType {
 }
 
 // State
-export interface SharedState<T> {
-    readonly mousePosition: [Pixel, Pixel]
-    readonly hovering: boolean
-    // readonly hoverIndex: number
-    readonly selectedIndices: number[]
-}
-
 export interface NoopState {
     readonly value: StateType.Noop
 }
 
 export type PossibleStates = NoopState | AddState
-export type State<T> = SharedState<T> & PossibleStates
+export type State<T> = PossibleStates
 
 // Actions
 export enum EventTypes {

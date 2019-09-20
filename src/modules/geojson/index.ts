@@ -44,10 +44,16 @@ const convertGeoJson = (from: From): PolygonShape<number>[] =>
             return []
         })
 
-export default (convert: { from: From; to: To }) => (canvas: HTMLCanvasElement) => {
+export default (convert: { from: From; to: To }) => (
+    canvas: HTMLCanvasElement,
+    mouseCanvas = canvas,
+) => {
     const shapes$ = new Subject<PolygonShape<number>[]>()
 
-    const api = core(shapes$.pipe(tap(() => console.info('Updating after zoom/pan'))))(canvas)
+    const api = core(shapes$.pipe(tap(() => console.info('Updating after zoom/pan'))))(
+        canvas,
+        mouseCanvas,
+    )
 
     const refresh = () => shapes$.next(convertGeoJson(convert.from))
 

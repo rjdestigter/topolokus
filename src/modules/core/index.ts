@@ -9,12 +9,14 @@ import {
     switchMap,
     startWith,
     switchMapTo,
+    mergeMap,
+    withLatestFrom,
 } from 'rxjs/operators'
 
 import KDBush from 'kdbush'
 import createPolyBush from './rbush'
 
-import { StateType, State, Point, Shape, SharedState, ShapeTypes } from './types'
+import { StateType, State, Point, Shape, ShapeTypes } from './types'
 import mapMouseEventToCoords from './utils/mapMouseEventToCoords'
 import pencil_ from './pencils'
 import { Event } from './events'
@@ -31,12 +33,17 @@ import { toMulticast } from './legacy/observables'
 // let cycle = 1
 // let mousemoveIndex = 0
 
-export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElement) => {
+export default <T>(shapes$: Observable<Shape<T>[]>) => (
+    canvas: HTMLCanvasElement,
+    mouseCanvas = canvas,
+) => {
     const ctx = canvas.getContext('2d')
-
+    const mouseCtx = mouseCanvas.getContext('2d')
     // console.group(`Cycle ${cycle}`)
 
-    if (ctx != null) {
+    if (ctx != null && mouseCtx != null) {
+        canvas.style.cursor = 'none'
+        mouseCanvas.style.cursor = 'none'
         /**
          * Final API for drawing markers, polygons, and lines.
          */
@@ -114,77 +121,29 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
         )
 
         let state: State<T> = {
-            mousePosition: [0, 0],
             value: StateType.Noop,
-            hovering: false,
-            // hoverIndex: -1,
-            selectedIndices: [],
         }
 
         let shapesState: Shape<T>[] = []
         shapes$.subscribe(shapes => (shapesState = shapes))
 
-        const history: State<T>[] = []
-        let future: State<T>[] = []
-
         const setState = (nextState: State<T>, affectsHistory = true) => {
             // console.time('setState')
             const prev = state
-
-            if (affectsHistory) {
-                history.push(state)
-                future = []
-            }
 
             state = nextState
             stateUpdates$.next([state, prev])
             // console.timeEnd('setState')
         }
 
-        const undo = () => {
-            const prev = history.pop()
-
-            if (prev) {
-                future.push(state)
-                setState(
-                    {
-                        ...prev,
-                        mousePosition: state.mousePosition,
-                    },
-                    false,
-                )
-            }
-        }
-
-        const redo = () => {
-            const next = future.pop()
-
-            if (next) {
-                history.push(next)
-                setState(
-                    {
-                        ...next,
-                        mousePosition: state.mousePosition,
-                    },
-                    false,
-                )
-            }
-        }
-
-        const onMouseClick$ = fromEvent<MouseEvent>(canvas, 'click').pipe(
+        const onMouseClick$ = fromEvent<MouseEvent>(mouseCanvas, 'click').pipe(
             map(e => mapMouseEventToCoords(e)),
         )
 
-        const onMouseDown$ = fromEvent<MouseEvent>(canvas, 'mousedown')
-
-        const onMouseUp = fromEvent<MouseEvent>(canvas, 'mouseup')
-
-        const onMouseMove$ = fromEvent<MouseEvent>(canvas, 'mousemove').pipe(
+        const onMouseMove$ = fromEvent<MouseEvent>(mouseCanvas, 'mousemove').pipe(
             // tap(() => console.time(`mousemove:${mousemoveIndex}`)),
             map(e => mapMouseEventToCoords(e)),
         )
-
-        const mousePosition$ = state$.pipe(map(state => state.mousePosition))
 
         const onMouseClickTranslated$ = onMouseClick$.pipe(
             map(([x, y]) => {
@@ -200,55 +159,30 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
             }),
         )
 
-        const onMouseMoveTranslated$ = onMouseMove$.pipe(
-            map(([x, y]) => {
-                const [tx = 0, ty = 0] = (
-                    canvas.style.transform.match(
-                        /translate3d\((-?\d+)px[, ]+(-?\d+)px[, ]+(-?\d+)/,
-                    ) || []
-                )
-                    .map(str => +str)
-                    .filter(n => !isNaN(n))
+        const mousePosition$ = onMouseMove$.pipe(
+            map(
+                ([x, y]): Point => {
+                    const [tx = 0, ty = 0] = (
+                        canvas.style.transform.match(
+                            /translate3d\((-?\d+)px[, ]+(-?\d+)px[, ]+(-?\d+)/,
+                        ) || []
+                    )
+                        .map(str => +str)
+                        .filter(n => !isNaN(n))
 
-                return [x + tx, y + ty] as [number, number]
-            }),
-        )
-
-        const hoverIndex$ = toMulticast(
-            mousePosition$.pipe(
-                // tap(() => console.time('hoverIndex')),
-                map(point => polyDb.searchPoint(point).map(item => item.index)),
-                scan((acc, next) => [acc[1], next] as const, [[], []] as readonly [
-                    number[],
-                    number[],
-                ]),
-                // tap(() => console.timeEnd('hoverIndex')),
-                // tap(n => console.log(n)),
-                filter(([a, b]) => a.length !== b.length || a.some((n, index) => n !== b[index])),
-                map(([, b]) => b),
+                    return [x + tx, y + ty] as [number, number]
+                },
             ),
         )
 
+        const hoverIndex$ = mousePosition$.pipe(
+            map(point => polyDb.searchPoint(point).map(item => item.index)),
+            scan((acc, next) => [acc[1], next] as const, [[], []] as readonly [number[], number[]]),
+            filter(([a, b]) => a.length !== b.length || a.some((n, index) => n !== b[index])),
+            map(([, b]) => b),
+        )
+
         const value$ = state$.pipe(map(state => state.value))
-
-        const hoverIndexNoop$ = value$.pipe(
-            switchMap(value => (value === StateType.Noop ? hoverIndex$ : of([] as number[]))),
-        )
-
-        const updateStateWithMousePosition$ = onMouseMoveTranslated$.pipe(
-            map(mapPointToSnap),
-            tap(mousePosition => {
-                setState(
-                    {
-                        ...state,
-                        mousePosition: mousePosition as [number, number],
-                    },
-                    false,
-                )
-            }),
-        )
-
-        // const logStateChange$ = stateUpdates$.pipe(tap(console.log))
 
         const reduceActions$ = events$.pipe(
             tap(event => {
@@ -270,14 +204,18 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
         const newPolygonAndShapes$ = combineLatest(
             addPolygonProgram$.pipe(startWith([] as Point[])),
             shapes$.pipe(startWith([] as Shape<T>[])),
-            hoverIndexNoop$.pipe(startWith([] as number[])),
-            // addMode$,
+            hoverIndex$.pipe(startWith([] as number[])),
         )
 
+        newPolygonAndShapes$.subscribe(foo => console.warn('Foo', foo))
+
         const draw$ = newPolygonAndShapes$.pipe(
+            withLatestFrom(mousePosition$.pipe(startWith([0, 0] as Point))),
+            map(([[a, b, c], d]) => [a, b, c, d] as const),
             tap(data => {
-                const [newPolygon, shapes, hoverIndices] = data
-                pencil.resetStyles(ctx)
+                const [newPolygon, shapes, hoverIndices, mousePosition] = data
+                console.log(mousePosition)
+                pencil.resetStyles()
 
                 // Clear the canvas
                 ctx.save()
@@ -293,7 +231,7 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
                 polygons.forEach((shape, index) => {
                     const hovering = hoverIndices.includes(index)
                     pencil.polygon({ ...shape, meta: { hovering, id: shape.meta } })
-                    pencil.resetStyles(ctx)
+                    pencil.resetStyles()
                 })
 
                 // Draw potential new polygon
@@ -301,19 +239,19 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
                 if (newPolygon.length > 1) {
                     pencil.polygon({
                         type: ShapeTypes.Polygon,
-                        shape: [[...newPolygon, state.mousePosition]],
+                        shape: [[...newPolygon, mousePosition]],
                         // TODO Provide a way to create T for new polygons
                         meta: { id: -1, hovering: true },
                     })
 
-                    pencil.resetStyles(ctx)
+                    pencil.resetStyles()
                 } else if (newPolygon.length === 1) {
                     pencil.line({
                         type: ShapeTypes.Line,
-                        shape: [...newPolygon, state.mousePosition],
+                        shape: [...newPolygon, mousePosition],
                         meta: (undefined as any) as T,
                     })
-                    pencil.resetStyles(ctx)
+                    pencil.resetStyles()
                 }
 
                 newPolygon.forEach(point =>
@@ -324,20 +262,23 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
 
         const subscription = merge(
             reduceActions$,
-            updateStateWithMousePosition$,
-            // logStateChange$,
             updatePointsDb$,
-            ofKeyCode([117, 85]).pipe(tap(undo)),
-            ofKeyCode([114, 82]).pipe(tap(redo)),
             draw$,
+            mousePosition$.pipe(
+                tap(xy => {
+                    mouseCtx.save()
+                    mouseCtx.clearRect(0, 0, canvas.width, canvas.height)
+                    // Use the identity matrix while clearing the canvas
+                    mouseCtx.setTransform(1, 0, 0, 1, 0, 0)
+                    mouseCtx.clearRect(0, 0, canvas.width, canvas.height)
+                    mouseCtx.restore()
+                    pencil.api.cursor(mouseCtx)(xy)
+                }),
+            ),
         ).subscribe()
 
         return {
             getState: () => state,
-            getHistory: () => history,
-            // subscribe: (cb: () => void) => {
-            //     stateUpdates$.subscribe(cb)
-            // },
             done: () => {
                 subscription.unsubscribe()
             },

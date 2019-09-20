@@ -23,7 +23,7 @@ import {
     SubmitNewPolygonEvent,
     addPolygon,
 } from './events'
-import { Point, Polygon, NoopState, SharedState } from '../types'
+import { Point, Polygon, NoopState } from '../types'
 import { Event } from '../events'
 import isNotNr from '../utils/isNotNr'
 import { noop } from '@babel/types'

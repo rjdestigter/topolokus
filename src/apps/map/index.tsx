@@ -49,9 +49,9 @@ const Canvas = () => {
         if (context.map != null) {
             const map = context.map
             const canvasLayer = createCanvasLayer(context.pane)
-            // const mouseCanvasLayer = createCanvasLayer(context.pane)
+            const mouseCanvasLayer = createCanvasLayer(context.pane)
             canvasLayer.addTo(context.map)
-            // mouseCanvasLayer.addTo(context.map)
+            mouseCanvasLayer.addTo(context.map)
             // @ts-ignore
             // const layer = geoJSON(geojson.features[0].geometry as any, { renderer: canvasLayer })
 
@@ -60,12 +60,12 @@ const Canvas = () => {
             Object.assign(window, { canvasLayer })
 
             const elCanvas: HTMLCanvasElement = (canvasLayer as any)._container
-            // const elMouseCanvasLayer: HTMLCanvasElement = (mouseCanvasLayer as any)._container
+            const elMouseCanvasLayer: HTMLCanvasElement = (mouseCanvasLayer as any)._container
 
             const api = topolokus({
                 from: fromLngLat(map),
                 to: toLngLat(map),
-            })(elCanvas)
+            })(elCanvas, elMouseCanvasLayer)
 
             const onZoomOrMove = _.debounce(api.refresh)
 

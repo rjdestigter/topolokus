@@ -1,4 +1,4 @@
-import { State, NoopState, StateType, Point, SharedState } from '../types'
+import { State, NoopState, StateType, Point } from '../types'
 
 import { AddState } from './types'
 import { AddEventTypes } from './events'
@@ -9,51 +9,35 @@ import isPolygon from '../utils/isPolygon'
 /**
  * Transitions state to the beginning o the "Add polygon" process
  */
-export const fromNoopToAddPolygon = <T>(
-    state: SharedState<T> & NoopState,
-): SharedState<T> & AddState => {
+export const fromNoopToAddPolygon = <T>(state: NoopState): AddState => {
     return {
-        ...state,
         value: StateType.AddPolygon,
-        // newPolygon: [],
     }
 }
 
 /**
  * Adds a point to the new poloygon the user is creating.
  */
-export const addPointToNewPolygon = <T>(
-    state: SharedState<T> & AddState,
-    point: Point,
-): SharedState<T> & AddState => {
+export const addPointToNewPolygon = <T>(state: AddState, point: Point): AddState => {
     return {
-        ...state,
         value: StateType.AddPolygon,
-        // newPolygon: [...state.newPolygon, point],
     }
 }
 
 /**
  * Transitions state to include the new polygon and return to base state.
  */
-export const submitNewPolygon = <T>(
-    state: SharedState<T> & AddState,
-): SharedState<T> & NoopState => {
+export const submitNewPolygon = <T>(state: AddState): NoopState => {
     return {
-        ...state,
         value: StateType.Noop,
-        // polygons: [...state.polygons, polygon],
     }
 }
 
 /**
  * Transitions back to base state without a new polygon.
  */
-export const cancelNewPolygon = <T>(
-    state: SharedState<T> & AddState,
-): SharedState<T> & NoopState => {
+export const cancelNewPolygon = <T>(state: AddState): NoopState => {
     return {
-        ...state,
         value: StateType.Noop,
     }
 }

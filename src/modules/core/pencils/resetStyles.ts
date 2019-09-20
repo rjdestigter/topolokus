@@ -1,4 +1,4 @@
-export default (ctx: CanvasRenderingContext2D) => {
+export default (ctx: CanvasRenderingContext2D) => () => {
     ctx.fillStyle = '#ffffff'
     ctx.strokeStyle = '#000000'
     ctx.lineWidth = 1
