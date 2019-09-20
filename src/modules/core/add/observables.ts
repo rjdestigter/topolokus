@@ -64,12 +64,15 @@ const head = <T>(xs: T[]) => {
     return h
 }
 
+const tuple = <A, B>(a: A, b: B): [A, B] => [a, b]
+
+const first = <A>([a]: [A, any]): A => a
 /**
  * Creates a program that will add a point to [[AddState]]'s `.newPolygon`
  * on every mosue click until the cancel or submit events are dispatched.
  */
 export const makeAddPointToPolygon = <T>(
-    newPoint$: Observable<Point>,
+    nextPoint$: Observable<Point>,
     dispatch: (event: Event) => void,
 ) => {
     const undoKey$ = keyPress$
@@ -83,32 +86,33 @@ export const makeAddPointToPolygon = <T>(
         .pipe(filter(evt => evt.ctrlKey && [121, 89, 25].includes(evt.keyCode)))
         .pipe(mapTo('redo' as const))
 
-    const allNewPoints$ = merge(newPoint$, undoKey$, redoKey$).pipe(
+    const allNewPoints$ = merge(
+        nextPoint$.pipe(tap(p => console.log('Next Point', ...p))),
+        undoKey$,
+        redoKey$,
+    ).pipe(
         scan(
             ([currentPoints, redoPoints], event) =>
                 // if
                 Array.isArray(event)
                     ? // then
-                      ([[...currentPoints, event], []] as [Point[], Point[]])
+                      tuple([...currentPoints, event], [])
                     : // else if
                     event === 'undo' && currentPoints.length > 0
                     ? // then
-                      ([
-                          initial(currentPoints),
-                          [currentPoints[currentPoints.length - 1], ...redoPoints],
-                      ] as [Point[], Point[]])
+                      tuple(initial(currentPoints), [
+                          currentPoints[currentPoints.length - 1],
+                          ...redoPoints,
+                      ])
                     : // else if
                     event === 'redo' && redoPoints.length > 0
                     ? // then
-                      ([[...currentPoints, head(redoPoints)], tail(redoPoints)] as [
-                          Point[],
-                          Point[],
-                      ])
+                      tuple([...currentPoints, head(redoPoints)], tail(redoPoints))
                     : // else
-                      ([currentPoints, []] as [Point[], Point[]]),
-            [[], []] as [Point[], Point[]],
+                      tuple(currentPoints, []),
+            tuple<Point[], Point[]>([], []),
         ),
-        map(([currentPoints]) => currentPoints),
+        map(first),
     )
 
     const pressedEnter$ = enterKey$.pipe(mapTo('submit' as const))
@@ -165,7 +169,7 @@ export const makeAddPointToPolygon = <T>(
  * Creates a program for adding new polygons.
  */
 export const makeAddPolygonProgram = <T>(
-    onMouseClick$: Observable<Point>,
+    nextPoint$: Observable<Point>,
     addPolygonEvent$: Observable<AddEventTypes.AddPolygon>,
     dispatch: (event: Event) => void,
 ): Observable<Point[]> =>
@@ -179,7 +183,7 @@ export const makeAddPolygonProgram = <T>(
             ).pipe(filter(isNotNr)),
             addPolygonEvent$,
         ).pipe(take(1)),
-        makeAddPointToPolygon(onMouseClick$, dispatch),
+        makeAddPointToPolygon(nextPoint$, dispatch),
         // Emit a final empty list of points once we are done.
         of([] as Point[]),
     ).pipe(

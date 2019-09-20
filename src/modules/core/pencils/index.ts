@@ -27,9 +27,9 @@ export default (api: Partial<Api> = {}) => (ctx: CanvasRenderingContext2D) => {
         cursor,
         api: {
             marker: defaultMarker,
-            polygon: defaultPolygon,
-            line: defaultLine,
-            resetstyles: defaultResetStyles,
+            polygon: defaultPolygon(finalMarker),
+            line: defaultLine(finalMarker),
+            resetStyles: defaultResetStyles,
             cursor: defaultCursor,
         },
     }

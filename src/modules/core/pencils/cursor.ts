@@ -3,10 +3,11 @@ import { Point } from '../types'
 /**
  * Draw the position of the mouse as circle on canvas
  */
-export default (ctx: CanvasRenderingContext2D) => (
-    [x, y]: Point,
-    options: { snap?: 'P' | 'L' } = {},
-) => {
+export default (ctx: CanvasRenderingContext2D) => (data: {
+    type: 'P' | 'M' | 'L'
+    point: Point
+}) => {
+    const [x, y] = data.point
     ctx.fillStyle = 'transparent'
     ctx.lineWidth = 1
 
@@ -19,11 +20,11 @@ export default (ctx: CanvasRenderingContext2D) => (
     ctx.lineWidth = 2
     ctx.strokeStyle =
         // if
-        options.snap === 'P'
+        data.type === 'P'
             ? // then
               'Yellow'
             : // else if
-            options.snap === 'L'
+            data.type === 'L'
             ? // then
               'Cyan'
             : // else
