@@ -28,15 +28,11 @@ export const makeFromEventType = (eventTypes$: Observable<Event['type']>) => <T 
 /**
  *
  */
-export const keyPress$ = fromEvent<KeyboardEvent>(document, 'keypress') // .pipe(tap(console.info))
-
+export const keyPress$ = fromEvent<KeyboardEvent>(document, 'keypress')
 /**
  *
  */
-export const keyPressCode$ = keyPress$.pipe(
-    map(evt => evt.keyCode),
-    tap(k => console.warn(k)),
-)
+export const keyPressCode$ = keyPress$.pipe(map(evt => evt.keyCode))
 
 /**
  *

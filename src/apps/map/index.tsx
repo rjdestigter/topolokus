@@ -11,10 +11,11 @@ import topolokus from '../../modules/geojson'
 // const position2: [number, number] = [51.885, 5.0509] // [51.505, -0.09]
 
 import geojson from '../../data/geosample.json'
+import { Point } from '../../modules/core/types'
 
-const position: [number, number] = [50.250492, -107.428083 + 0] // [51.505, -0.09]
+const position: [number, number] = [52.1326, 5.2913] // [51.505, -0.09]
 const Map: React.FC = (props: { children?: React.ReactNode }) => (
-    <ReactLeafletMap center={position} zoom={17}>
+    <ReactLeafletMap center={position} zoom={8}>
         <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
@@ -31,14 +32,14 @@ const createCanvasLayer = (pane?: string) => canvas({ padding: 0, pane })
 
 // type CanvasLayer = undefined | ReturnType<typeof createCanvasLayer>
 
-const toLngLat = (map: LeafletMap) => ([x, y]: number[]): [number, number] => {
+const toLngLat = (map: LeafletMap) => ([x, y, lng, lat]: Point): [number, number] => {
     const point = map.layerPointToLatLng([x, y])
-    return [point.lng, point.lat]
+    return [lng || point.lng, lat || point.lat]
 }
 
-const fromLngLat = (map: LeafletMap) => ([lng, lat]: number[]): [number, number] => {
+const fromLngLat = (map: LeafletMap) => ([lng, lat]: number[]): Point => {
     const point = map.latLngToLayerPoint([lat, lng + 0])
-    return [point.x, point.y]
+    return [point.x, point.y, lng, lat]
 }
 
 const Canvas = () => {

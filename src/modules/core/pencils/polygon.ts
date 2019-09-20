@@ -1,4 +1,4 @@
-import { PointShape, PolygonShape } from '../types'
+import { PointShape, PolygonShape, ShapeTypes } from '../types'
 
 const colors = [
     (n = 1) => `rgba(255,0,0,${n})`,

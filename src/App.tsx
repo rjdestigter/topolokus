@@ -29,7 +29,13 @@ const App: React.FC = () => {
                     <li>
                         Press <i>&quot;c&quot;</i> to cancel the operation.
                     </li>
-                    <li>Snapping is supported</li>
+                    <li>
+                        Supports:
+                        <ul>
+                            <li>Snapping</li>
+                            <li>Undo & redo with Ctrl-Z/Y while adding points</li>
+                        </ul>
+                    </li>
                 </ol>
             </div>
             <div id="map">

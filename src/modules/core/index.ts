@@ -91,10 +91,10 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
         /**
          * Finds the nearest point a given point can snap to
          */
-        const mapPointToSnap = ([x, y]: [number, number]): [number, number] => {
+        const mapPointToSnap = ([x, y]: [number, number]): Point => {
             const pointSnap = convertShapesToListOfPoints(shapesState)[pointsDb.within(x, y, 10)[0]]
-
-            return pointSnap ? [pointSnap[0], pointSnap[1]] : [x, y]
+            pointSnap && console.log(...pointSnap)
+            return pointSnap || [x, y]
         }
 
         /**
@@ -261,17 +261,6 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
             }),
         )
 
-        const addPolygonState$ = state$.pipe(
-            filter(
-                (state): state is SharedState<T> & AddState => state.value === StateType.AddPolygon,
-            ),
-        )
-
-        const addMode$ = state$.pipe(
-            filter(state => state.value !== StateType.Noop),
-            mapTo(true),
-        )
-
         const addPolygonProgram$ = makeAddPolygonProgram(
             onMouseClickTranslated$.pipe(map(mapPointToSnap)),
             fromEventType(AddEventTypes.AddPolygon),
@@ -316,6 +305,7 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
                         // TODO Provide a way to create T for new polygons
                         meta: { id: -1, hovering: true },
                     })
+
                     pencil.resetStyles(ctx)
                 } else if (newPolygon.length === 1) {
                     pencil.line({
@@ -325,12 +315,10 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (canvas: HTMLCanvasElemen
                     })
                     pencil.resetStyles(ctx)
                 }
-                // }
 
-                // console.timeEnd(`mousemove:${mousemoveIndex++}`)
-                // console.groupEnd()
-                // cycle += 1
-                // console.groupCollapsed(`Cycle ${cycle}`)
+                newPolygon.forEach(point =>
+                    pencil.marker({ type: ShapeTypes.Point, shape: point, meta: {} }),
+                )
             }),
         )
 

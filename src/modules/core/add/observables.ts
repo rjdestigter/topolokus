@@ -14,7 +14,7 @@ import {
 } from 'rxjs/operators'
 
 import { AddState } from './types'
-import { cancelKey$, enterKey$, ofKeyCode, makeFromEventType } from '../observables'
+import { cancelKey$, enterKey$, ofKeyCode, makeFromEventType, keyPress$ } from '../observables'
 import {
     AddEventTypes,
     addPointToNewPolygon,
@@ -48,49 +48,21 @@ export const makeSubmitNewPolygonEvent$ = (fromEventType: ReturnType<typeof make
 export const makeCancelNewPolygonEvent$ = (fromEventType: ReturnType<typeof makeFromEventType>) =>
     fromEventType(AddEventTypes.CancelNewPolygon)
 
-/**
- * Given an observable that streams state updates to [[AddState]] this function creates
- * an observable that will dispatch the SubmitNewPolygon event when the user presses
- * the entery key if the number of points in the polygon is larger than 2.
- */
-/*
-const makeSubmitNewPolygon$ = <T>(dispatch: Dispatch) =>
-    concat(
-        // Await state changes until the new polygon is enough points
-        // to become a valid polygon.
-        // TODO: When the user undoes adding points and reverts to 2 points
-        addPolygonState$
-            .pipe(
-                filter(state => state.newPolygon.length > 2),
-                take(1),
-            )
-            .pipe(
-                switchMap(state =>
-                    concat(
-                        enterKey$.pipe(take(1)),
-                        makeDispatchSubmitNewPolygon(
-                            [...state.newPolygon, state.mousePosition],
-                            dispatch,
-                        ),
-                    ),
-                ),
-            ),
-    ).pipe(
-        // Filter out the key presses and state changes so that this stream
-        // ends up only emitting the SubmitNewPolygonEvent event.
-        filter(isNotNr),
-        filter(
-            (value): value is SubmitNewPolygonEvent =>
-                isNotNr(value) && value.hasOwnProperty('type'),
-        ),
-    )
-*/
+const initial = <T>(xs: T[]) => {
+    const clone = [...xs]
+    clone.splice(xs.length - 1, 1)
+    return clone
+}
 
-/** Observable for event of type CancelNewPolygon or SubmitNewPolygon */
-/* const makeCancelOrSubmitEvent = <T>(
-    addPolygonState$: Observable<SharedState<T> & AddState>,
-    dispatch: Dispatch,
-) => merge(makeSubmitNewPolygon$(dispatch), makeCancelNewPolygon(dispatch)) */
+const tail = <T>(xs: T[]) => {
+    const [_, ...t] = xs
+    return t
+}
+
+const head = <T>(xs: T[]) => {
+    const [h] = xs
+    return h
+}
 
 /**
  * Creates a program that will add a point to [[AddState]]'s `.newPolygon`
@@ -100,11 +72,47 @@ export const makeAddPointToPolygon = <T>(
     newPoint$: Observable<Point>,
     dispatch: (event: Event) => void,
 ) => {
-    const allNewPoints$ = newPoint$.pipe(
-        scan((currentPoints, newPoint) => [...currentPoints, newPoint], [] as Point[]),
+    const undoKey$ = keyPress$
+        .pipe(
+            tap(e => console.log('undo', e)),
+            filter(evt => evt.ctrlKey && [122, 90, 26].includes(evt.keyCode)),
+        )
+        .pipe(mapTo('undo' as const))
+
+    const redoKey$ = keyPress$
+        .pipe(filter(evt => evt.ctrlKey && [121, 89, 25].includes(evt.keyCode)))
+        .pipe(mapTo('redo' as const))
+
+    const allNewPoints$ = merge(newPoint$, undoKey$, redoKey$).pipe(
+        scan(
+            ([currentPoints, redoPoints], event) =>
+                // if
+                Array.isArray(event)
+                    ? // then
+                      ([[...currentPoints, event], []] as [Point[], Point[]])
+                    : // else if
+                    event === 'undo' && currentPoints.length > 0
+                    ? // then
+                      ([
+                          initial(currentPoints),
+                          [currentPoints[currentPoints.length - 1], ...redoPoints],
+                      ] as [Point[], Point[]])
+                    : // else if
+                    event === 'redo' && redoPoints.length > 0
+                    ? // then
+                      ([[...currentPoints, head(redoPoints)], tail(redoPoints)] as [
+                          Point[],
+                          Point[],
+                      ])
+                    : // else
+                      ([currentPoints, []] as [Point[], Point[]]),
+            [[], []] as [Point[], Point[]],
+        ),
+        map(([currentPoints]) => currentPoints),
     )
 
     const pressedEnter$ = enterKey$.pipe(mapTo('submit' as const))
+
     const pressedCancel$ = cancelKey$.pipe(mapTo('cancel' as const))
 
     type Emitted = 'submit' | 'cancel' | Point[]
@@ -142,6 +150,7 @@ export const makeAddPointToPolygon = <T>(
         .pipe(
             // filter(([submit, cancel]) => submit || cancel),
             tap(([event, points]) => {
+                console.log('Event', event, ...points)
                 if (event === 'submit' && points.length > 2) {
                     dispatch(submitNewPolygon([points]))
                 } else if (event === 'cancel') {
