@@ -1,19 +1,19 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "38873e921e5e195ab40ad57c9fca37b5",
+    "revision": "1459a494bffddb2f842083b8ac757f0b",
     "url": "/topolokus/index.html"
   },
   {
-    "revision": "acbef4911be779972b14",
+    "revision": "b0bfb2d78ea715ab05a4",
     "url": "/topolokus/static/css/main.935403ef.chunk.css"
   },
   {
-    "revision": "2936a9dd747f18642334",
-    "url": "/topolokus/static/js/2.85d3c8a7.chunk.js"
+    "revision": "c7aacfd24d269963e3a2",
+    "url": "/topolokus/static/js/2.0be6c569.chunk.js"
   },
   {
-    "revision": "acbef4911be779972b14",
-    "url": "/topolokus/static/js/main.15c83af0.chunk.js"
+    "revision": "b0bfb2d78ea715ab05a4",
+    "url": "/topolokus/static/js/main.44434be4.chunk.js"
   },
   {
     "revision": "bfaf02f5a70f5faae5f5",
