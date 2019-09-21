@@ -76,21 +76,14 @@ export const makeAddPointToPolygon = <T>(
     dispatch: (event: Event) => void,
 ) => {
     const undoKey$ = keyPress$
-        .pipe(
-            tap(e => console.log('undo', e)),
-            filter(evt => evt.ctrlKey && [122, 90, 26].includes(evt.keyCode)),
-        )
+        .pipe(filter(evt => evt.ctrlKey && [122, 90, 26].includes(evt.keyCode)))
         .pipe(mapTo('undo' as const))
 
     const redoKey$ = keyPress$
         .pipe(filter(evt => evt.ctrlKey && [121, 89, 25].includes(evt.keyCode)))
         .pipe(mapTo('redo' as const))
 
-    const allNewPoints$ = merge(
-        nextPoint$.pipe(tap(p => console.log('Next Point', ...p))),
-        undoKey$,
-        redoKey$,
-    ).pipe(
+    const allNewPoints$ = merge(nextPoint$, undoKey$, redoKey$).pipe(
         scan(
             ([currentPoints, redoPoints], event) =>
                 // if

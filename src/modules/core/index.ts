@@ -160,7 +160,6 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (
         const snappedClick$ = translatedMouseClick$.pipe(
             withLatestFrom(mapPointToSnapFn$),
             map(([point, mapPointToSnap]) => mapPointToSnap(point)),
-            tap(point => console.log(point)),
         )
 
         const mouseMove$ = fromEvent<MouseEvent>(mouseCanvas, 'mousemove')
@@ -171,7 +170,6 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (
             translatedMousemMove$.pipe(
                 withLatestFrom(mapPointToSnapFn$),
                 map(([point, mapPointToSnap]) => mapPointToSnap(point)),
-                tap(data => console.log(data)),
             ),
         )
 
@@ -182,7 +180,6 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (
             scan((acc, next) => [acc[1], next] as const, [[], []] as readonly [number[], number[]]),
             filter(([a, b]) => a.length !== b.length || a.some((n, index) => n !== b[index])),
             map(([, b]) => b),
-            filter(() => false),
         )
 
         const reduceActions$ = events$.pipe(
@@ -197,7 +194,6 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (
             // snappedClick$.pipe(map(({ point }) => point)),
             mouseClick$.pipe(
                 withLatestFrom(mousePositionSnappedPoint$),
-                tap(data => console.warn(...data)),
                 map(([, point]) => point),
             ),
             fromEventType(AddEventTypes.AddPolygon),
@@ -208,12 +204,8 @@ export default <T>(shapes$: Observable<Shape<T>[]>) => (
             shapes$.pipe(startWith([] as Shape<T>[])),
             hoverIndex$.pipe(startWith([] as number[])),
         ).pipe(
-            withLatestFrom(
-                mousePositionSnapped$.pipe(startWith({ type: 'M', point: [0, 0] as Point })),
-            ),
-            map(([[a, b], c]) => [a, b, c] as const),
             tap(data => {
-                const [shapes, hoverIndices, mousePosition] = data
+                const [shapes, hoverIndices] = data
 
                 pencil.resetStyles()
 
