@@ -1,5 +1,6 @@
 import { State, Point, Shape, StateType, PointShape, LineShape, PolygonShape } from './types'
 import { memoize, isPolygonShape, isPointShape, isLineShape, emptyArray, last } from './utils'
+import { multiLineString as turfMultiLineString } from '@turf/helpers'
 
 /**
  * From `[Polygon, T] -> [Polygon]
@@ -62,4 +63,19 @@ export const convertShapesToListOfPoints = memoize(<T>(shapes: Shape<T>[]): Poin
  */
 export const convertShapesToListOfLines = memoize(<T>(shapes: Shape<T>[]): [Point, Point][] =>
     convertPolygonShapesToListOfLines(filterPolygonShapes(shapes)),
+)
+
+export const convertListOfLinesToLineString = memoize((lineDb: [Point, Point][]) =>
+    turfMultiLineString(
+        lineDb.flatMap(([a, b]) => {
+            if (a.length === 4 && b.length === 4) {
+                const [, , x1, y1] = a
+                const [, , x2, y2] = b
+
+                return [[[x1, y1], [x2, y2]]]
+            }
+
+            return []
+        }),
+    ),
 )

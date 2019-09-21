@@ -16,6 +16,9 @@ import {
 import KDBush from 'kdbush'
 import createPolyBush from './rbush'
 
+// @ts-ignore
+import nearestPointOnLine from '@turf/nearest-point-on-line'
+
 import { StateType, State, Point, Shape, ShapeTypes, ConvertPoint, Snap, SnapType } from './types'
 import mapMouseEventToCoords from './utils/mapMouseEventToCoords'
 import pencil_ from './pencils'
@@ -27,6 +30,7 @@ import {
     filterPolygonShapes,
     convertPolygonShapesToListOfLines,
     convertShapesToListOfLines,
+    convertListOfLinesToLineString,
 } from './selectors'
 
 import { AddState } from './add/types'
@@ -126,23 +130,37 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
                 const pointSnap = convertShapesToListOfPoints(shapes)[pointsDb.within(x, y, 10)[0]]
 
                 if (pointSnap) {
-                    return { type: SnapType.Point as const, point: pointSnap }
+                    return { type: SnapType.Point, point: pointSnap }
                 }
 
                 const lineSnap = findLineSnapPosition([x, y, lng!, lat!], lineDb as any)
 
                 if (lineSnap) {
-                    const [x, y] = lineSnap.point
-                    const [lng, lat] = convert.to(lineSnap.point)
-                    return {
-                        distance: 4,
-                        line: (lineSnap.line as any) as [Point, Point],
-                        type: SnapType.Line,
-                        point: [x, y, lng, lat], // [lineSnap.point[0], lineSnap.point[1], lng, lat] as Point,
+                    const multiLineString = convertListOfLinesToLineString(lineDb)
+                    const maybePoint = nearestPointOnLine(multiLineString, [lng, lat])
+
+                    if (maybePoint) {
+                        const [sx, sy] = convert.from(maybePoint.geometry.coordinates)
+                        return {
+                            distance: 4,
+                            line: (lineSnap.line as any) as [Point, Point],
+                            type: SnapType.Line,
+                            point: [sx, sy, ...maybePoint.geometry.coordinates] as any, // [lineSnap.point[0], lineSnap.point[1], lng, lat] as Point,
+                        }
                     }
+                    // console.log(snap)
+
+                    // const [x, y] = lineSnap.point
+                    // const [lng, lat] = convert.to(lineSnap.point)
+                    // return {
+                    //     distance: 4,
+                    //     line: (lineSnap.line as any) as [Point, Point],
+                    //     type: SnapType.Line,
+                    //     point: [x, y, lng, lat], // [lineSnap.point[0], lineSnap.point[1], lng, lat] as Point,
+                    // }
                 }
 
-                return { type: SnapType.None as const, point: [x, y, lng, lat] as Point }
+                return { type: SnapType.None, point: [x, y, lng, lat] as Point }
             }),
         )
 
