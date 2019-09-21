@@ -23,6 +23,7 @@ import {
     QPolyLike,
     QPosition,
 } from './types'
+import { Point } from '../types'
 
 type Project = (xy: number[]) => number[]
 
@@ -168,17 +169,21 @@ export const pointToLineDistance = ([x, y]: number[], [[x1, y1], [x2, y2]]: numb
  * @param position
  * @param lines
  */
-export const findLineSnapPosition = (position: Position, lines: [QPosition, QPosition][]) => {
-    let point: Position | undefined
+export const findLineSnapPosition = (
+    [x, y, lng, lat]: [number, number, number, number],
+    lines: [[number, number, number, number], [number, number, number, number]][],
+) => {
+    let point: [number, number] | undefined
     let distance = -1
-    let line: [QPosition, QPosition] | undefined
+    let line: [[number, number, number, number], [number, number, number, number]] | undefined
 
     lines.find((poly): boolean => {
-        const [xy, d] = pointToLineDistance(position, poly)
+        const [[x1, y1, lng1, lat1], [x2, y2, lng2, lat2]] = poly
+        const [xy, dxy] = pointToLineDistance([x, y], [[x1, y1], [x2, y2]])
 
-        if (d <= 5) {
-            point = xy
-            distance = d
+        if (dxy <= 5) {
+            point = xy as [number, number]
+            distance = dxy
             line = poly
 
             return true

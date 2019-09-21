@@ -84,7 +84,12 @@ export type ToPoint = (coordinate: Point) => number[]
 export type ConvertPoint = { from: FromPoint; to: ToPoint }
 
 export enum SnapType {
-    Point,
-    Line,
-    None,
+    Point = 'P',
+    Line = 'L',
+    None = 'M',
 }
+
+export type SnapPoint = { type: SnapType.Point; point: Point }
+export type SnapLine = { type: SnapType.Line; point: Point; line: [Point, Point]; distance: number }
+export type SnapNone = { type: SnapType.None; point: Point }
+export type Snap = SnapPoint | SnapLine | SnapNone

@@ -63,5 +63,11 @@ export const head = <T>(xs: T[]) => {
     return h
 }
 
+/** Time */
+export const last = <T>(xs: T[]) => {
+    const [l] = [...xs].reverse()
+    return l
+}
+
 export const returnEmptyArray = <T>(value: T): T =>
     Array.isArray(value) && value.length <= 0 ? (emptyArray as any) : value

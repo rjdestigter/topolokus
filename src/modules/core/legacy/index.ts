@@ -259,18 +259,17 @@ export default function withCanvas<T>(
                 }
             }
 
-            if (state.lineSnap) {
-                const lineSnap = utils.findLineSnapPosition(xy, state.lines)
-
-                if (lineSnap) {
-                    const [lng, lat] = toLngLat([lineSnap.point[0], lineSnap.point[1]])
-                    return {
-                        type: 'L',
-                        coord: [lineSnap.point[0], lineSnap.point[1], lng, lat],
-                        line: lineSnap.line,
-                    }
-                }
-            }
+            // if (state.lineSnap) {
+            // const lineSnap = utils.findLineSnapPosition(xy, state.lines)
+            // if (lineSnap) {
+            //     const [lng, lat] = toLngLat([lineSnap.point[0], lineSnap.point[1]])
+            //     return {
+            //         type: 'L',
+            //         coord: [lineSnap.point[0], lineSnap.point[1], lng, lat],
+            //         line: lineSnap.line,
+            //     }
+            // }
+            // }
 
             const [lng2, lat2] = toLngLat([xy[0], xy[1]])
             return { type: 'N', coord: [xy[0], xy[1], lng2, lat2] }

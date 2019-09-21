@@ -16,19 +16,28 @@ import {
 import KDBush from 'kdbush'
 import createPolyBush from './rbush'
 
-import { StateType, State, Point, Shape, ShapeTypes, ConvertPoint } from './types'
+import { StateType, State, Point, Shape, ShapeTypes, ConvertPoint, Snap, SnapType } from './types'
 import mapMouseEventToCoords from './utils/mapMouseEventToCoords'
 import pencil_ from './pencils'
 import { Event } from './events'
 import transition from './reducers'
 import { mapFirst, ofKeyCode, makeFromEventType, makeEventTypes } from './observables'
-import { convertShapesToListOfPoints, filterPolygonShapes } from './selectors'
+import {
+    convertShapesToListOfPoints,
+    filterPolygonShapes,
+    convertPolygonShapesToListOfLines,
+    convertShapesToListOfLines,
+} from './selectors'
 
 import { AddState } from './add/types'
 import { addPolygon, AddEventTypes, SubmitNewPolygonEvent } from './add/events'
 import makeAddPolygonProgram from './add/observables'
 import { isPolygonShape } from './utils'
 import { toMulticast } from './legacy/observables'
+import { findLineSnapPosition } from './legacy/utils'
+import { point } from 'leaflet'
+
+ofKeyCode([120, 88]).subscribe(() => console.clear())
 
 const translateOffsetOfCanvas = (canvas: HTMLCanvasElement) => ([x, y]: [
     number,
@@ -70,6 +79,7 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
             new KDBush([])
 
         const polyDb = createPolyBush()
+        let lineDb: [Point, Point][] = []
 
         /**
          * Observable for emitting events
@@ -112,15 +122,27 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
 
         const mapPointToSnapFn$ = shapes$.pipe(
             startWith([]),
-            map(shapes => ([x, y, lng, lat]: Point): { type: 'P' | 'M'; point: Point } => {
+            map(shapes => ([x, y, lng, lat]: Point): Snap => {
                 const pointSnap = convertShapesToListOfPoints(shapes)[pointsDb.within(x, y, 10)[0]]
 
-                // if
-                return pointSnap != null
-                    ? // then
-                      { type: 'P' as const, point: pointSnap }
-                    : //else
-                      { type: 'M' as const, point: [x, y, lng, lat] as Point }
+                if (pointSnap) {
+                    return { type: SnapType.Point as const, point: pointSnap }
+                }
+
+                const lineSnap = findLineSnapPosition([x, y, lng!, lat!], lineDb as any)
+
+                if (lineSnap) {
+                    const [x, y] = lineSnap.point
+                    const [lng, lat] = convert.to(lineSnap.point)
+                    return {
+                        distance: 4,
+                        line: (lineSnap.line as any) as [Point, Point],
+                        type: SnapType.Line,
+                        point: [x, y, lng, lat], // [lineSnap.point[0], lineSnap.point[1], lng, lat] as Point,
+                    }
+                }
+
+                return { type: SnapType.None as const, point: [x, y, lng, lat] as Point }
             }),
         )
 
@@ -130,6 +152,7 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
         const updatePointsDb$ = shapes$.pipe(
             tap(shapes => {
                 const polygons = filterPolygonShapes(shapes).map(item => item.shape)
+                lineDb = convertShapesToListOfLines(shapes)
                 polyDb.replace(polygons)
             }),
             map(convertShapesToListOfPoints),
@@ -235,7 +258,6 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
                     map(([, points]) =>
                         points.map(point => {
                             const [, , lng, lat] = point
-                            console.log(lng, lat)
                             if (lng != null && lat != null) {
                                 const [x, y] = convert.from([lng, lat])
 
@@ -248,7 +270,6 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
                 ),
             ).pipe(
                 tap(([mousePosition, newPolygon]) => {
-                    console.log('Draw')
                     mousePencil.eraser()
 
                     // Draw potential new polygon
@@ -279,6 +300,14 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
                         }),
                     )
 
+                    if (mousePosition.type === SnapType.Line) {
+                        mouseCtx.beginPath()
+                        mouseCtx.moveTo(mousePosition.line[0][0], mousePosition.line[0][1])
+                        mouseCtx.lineTo(mousePosition.line[1][0], mousePosition.line[1][1])
+                        mouseCtx.strokeStyle = 'Cyan'
+                        mouseCtx.stroke()
+                        // ctx
+                    }
                     mousePencil.cursor(mousePosition)
                 }),
             ),
