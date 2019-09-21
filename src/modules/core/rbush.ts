@@ -20,13 +20,10 @@ type Item = ReturnType<typeof polygonToItem>
 type Tree = rbush.RBush<Item>
 
 const insertPolygons = (tree: Tree, state: { count: number }) => (polygons: Polygon[]) => {
-    // console.log(`Count: ${state.count}`)
     const items = polygons.map((polygon, index) => {
-        // console.info(index, state.count, index + state.count + 1)
         return polygonToItem(polygon, index + state.count + 1)
     })
     state.count += polygons.length
-    console.warn(`Inserting ${items.length}`)
     tree.load(items)
 }
 
@@ -48,7 +45,6 @@ const searchByPoint = (tree: Tree) => {
             maxY: y,
         })
 
-        // items.length > 0 && console.log(items)
         return items.filter(item => booleanPointInPolygon([x, y], item.polygon))
     }
 }

@@ -1,5 +1,5 @@
 import { fromEvent, Observable } from 'rxjs'
-import { map, filter, tap } from 'rxjs/operators'
+import { map, filter, tap, mapTo } from 'rxjs/operators'
 
 import { Event, EventType } from './events'
 
@@ -53,3 +53,11 @@ export const enterKey$ = ofKeyCode(13)
  *
  */
 export const cancelKey$ = ofKeyCode(99)
+
+export const undoKey$ = keyPress$
+    .pipe(filter(evt => evt.ctrlKey && [122, 90, 26].includes(evt.keyCode)))
+    .pipe(mapTo('undo' as const))
+
+export const redoKey$ = keyPress$
+    .pipe(filter(evt => evt.ctrlKey && [121, 89, 25].includes(evt.keyCode)))
+    .pipe(mapTo('redo' as const))

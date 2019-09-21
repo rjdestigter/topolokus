@@ -1,13 +1,10 @@
 import core from '../core'
-import { Point, ShapeTypes, PolygonShape, Shape } from '../core/types'
+import { Point, ShapeTypes, PolygonShape, Shape, ConvertPoint } from '../core/types'
 
 import { of, Subject } from 'rxjs'
 import geojson from '../../data/nl.json'
 import { tap } from 'rxjs/operators'
 import { Polygon as P, MultiPolygon as M } from '@turf/helpers'
-
-type From = (coordinate: number[]) => Point
-type To = (coordinate: Point) => number[]
 
 const data: typeof geojson.features = geojson.features
 
@@ -16,7 +13,7 @@ type G = typeof data[0]['geometry']
 const isP = (g: G): g is P => g.type === 'Polygon'
 const isM = (g: G): g is M => g.type === 'MultiPolygon'
 
-const convertGeoJson = (from: From): PolygonShape<number>[] =>
+const convertGeoJson = (from: ConvertPoint['from']): PolygonShape<number>[] =>
     // @ts-ignore
     data
         // .filter(feature => true || feature.properties.ZoneID % 2 === 0)
@@ -44,16 +41,10 @@ const convertGeoJson = (from: From): PolygonShape<number>[] =>
             return []
         })
 
-export default (convert: { from: From; to: To }) => (
-    canvas: HTMLCanvasElement,
-    mouseCanvas = canvas,
-) => {
+export default (convert: ConvertPoint) => (canvas: HTMLCanvasElement, mouseCanvas = canvas) => {
     const shapes$ = new Subject<PolygonShape<number>[]>()
 
-    const api = core(shapes$.pipe(tap(() => console.info('Updating after zoom/pan'))))(
-        canvas,
-        mouseCanvas,
-    )
+    const api = core(convert, shapes$)(canvas, mouseCanvas)
 
     const refresh = () => shapes$.next(convertGeoJson(convert.from))
 

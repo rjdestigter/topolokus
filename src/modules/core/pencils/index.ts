@@ -3,6 +3,7 @@ import defaultPolygon from './polygon'
 import defaultLine from './line'
 import defaultResetStyles from './resetStyles'
 import defaultCursor from './cursor'
+import eraser from './eraser'
 
 interface Api {
     marker: typeof defaultMarker
@@ -12,25 +13,31 @@ interface Api {
     resetStyles: typeof defaultResetStyles
 }
 
-export default (api: Partial<Api> = {}) => (ctx: CanvasRenderingContext2D) => {
-    const finalMarker = (api.marker || defaultMarker)(ctx)
-    const finalPolygon = (api.polygon || defaultPolygon)(finalMarker)(ctx)
-    const finalLine = (api.line || defaultLine)(finalMarker)(ctx)
-    const cursor = (api.cursor || defaultCursor)(ctx)
-    const resetStyles = (api.resetStyles || defaultResetStyles)(ctx)
+export default (api: Partial<Api> = {}) => (canvas: HTMLCanvasElement) => {
+    const ctx = canvas.getContext('2d')
 
-    return {
-        marker: finalMarker,
-        polygon: finalPolygon,
-        line: finalLine,
-        resetStyles,
-        cursor,
-        api: {
-            marker: defaultMarker,
-            polygon: defaultPolygon(finalMarker),
-            line: defaultLine(finalMarker),
-            resetStyles: defaultResetStyles,
-            cursor: defaultCursor,
-        },
+    if (ctx) {
+        const finalMarker = (api.marker || defaultMarker)(ctx)
+        const finalPolygon = (api.polygon || defaultPolygon)(finalMarker)(ctx)
+        const finalLine = (api.line || defaultLine)(finalMarker)(ctx)
+        const cursor = (api.cursor || defaultCursor)(ctx)
+        const resetStyles = (api.resetStyles || defaultResetStyles)(ctx)
+
+        return {
+            marker: finalMarker,
+            polygon: finalPolygon,
+            line: finalLine,
+            resetStyles,
+            cursor,
+            eraser: eraser(canvas),
+            api: {
+                marker: defaultMarker,
+                polygon: defaultPolygon(finalMarker),
+                line: defaultLine(finalMarker),
+                resetStyles: defaultResetStyles,
+                cursor: defaultCursor,
+                eraser,
+            },
+        }
     }
 }

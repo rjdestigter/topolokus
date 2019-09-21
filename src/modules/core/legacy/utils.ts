@@ -319,11 +319,8 @@ export const injectLineSnapPosition = (
 ) => {
     let didInject = false
 
-    console.log(ring, line, point)
-
     const nextRing = ring.reduce(
         (acc, coord) => {
-            console.log('Acc', acc)
             const previous = acc[acc.length - 1]
 
             if (
@@ -332,7 +329,6 @@ export const injectLineSnapPosition = (
                 pointPixelsAreEqual(previous, line[0]) &&
                 pointPixelsAreEqual(coord, line[1])
             ) {
-                console.log('Inject', point, coord)
                 didInject = true
                 acc.push(point, coord)
             } else {

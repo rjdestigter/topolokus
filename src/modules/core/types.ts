@@ -78,3 +78,13 @@ export enum EventTypes {
     EditPolygon = 'EditPolygon',
     RemovePolygon = 'RemovePolygon',
 }
+
+export type FromPoint = (coordinate: number[]) => Point
+export type ToPoint = (coordinate: Point) => number[]
+export type ConvertPoint = { from: FromPoint; to: ToPoint }
+
+export enum SnapType {
+    Point,
+    Line,
+    None,
+}
