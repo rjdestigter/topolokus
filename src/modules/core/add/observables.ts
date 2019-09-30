@@ -92,11 +92,7 @@ export const makeAddPointToPolygon = <T>(
 /**
  * Creates a program for adding new polygons.
  */
-export default <T>(
-    nextPoint$: Observable<Point>,
-    addPolygonEvent$: Observable<AddEventTypes.AddPolygon>,
-    dispatch: (event: Event) => void,
-): Observable<Point[]> =>
+export default <T>(nextPoint$: Observable<Point>): Observable<Point[]> =>
     concat(
         merge(
             concat(
@@ -105,7 +101,6 @@ export default <T>(
                 // Dispatch "AddPolygon" event
                 of(addPolygon()).pipe(tap(dispatch)),
             ).pipe(filter(isNotOfTypeNbr)),
-            addPolygonEvent$,
         ).pipe(take(1)),
         makeAddPointToPolygon(nextPoint$, dispatch),
         // Emit a final empty list of points once we are done.

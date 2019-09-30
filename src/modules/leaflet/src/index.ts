@@ -1,5 +1,5 @@
 import { Map } from 'leaflet'
-import { createCanvasLayer, fromLngLat, toLngLat } from './utils'
+import { createCanvasLayer, fromLngLat, toLngLat, translateOffsetOfCanvas } from './utils'
 import plopGeoJSON from '../../geojson'
 import { FeatureCollection, Feature, Polygon, MultiPolygon } from '@turf/helpers'
 
@@ -19,11 +19,14 @@ export default (map: Map, options: { pane?: string } = {}) => (geometries: Geome
 
     const elCanvas: HTMLCanvasElement = (canvasLayer as any)._container
     const elMouseCanvasLayer: HTMLCanvasElement = (mouseCanvasLayer as any)._container
+    const translateOffset = translateOffsetOfCanvas(elCanvas)
 
     const plop = plopGeoJSON({
         from: fromLngLat(map),
         to: toLngLat(map),
-    })(elCanvas, elMouseCanvasLayer)(geometries)
+    })(elCanvas, elMouseCanvasLayer, {
+        mapOffset: translateOffset,
+    })(geometries)
 
     map.addEventListener('moveend zoomend', plop.refresh)
 

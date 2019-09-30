@@ -69,12 +69,15 @@ export const geometries2shapes = (from: From) => (geometries: Geometry[]) =>
 export default (convert: ConvertPoint) => (
     canvas: HTMLCanvasElement,
     mouseCanvas: HTMLCanvasElement,
+    config: {
+        mapOffset?: (xy: [number, number]) => [number, number]
+    } = {},
 ) => (geometries: Geometry[]) => {
     const geometries$ = new BehaviorSubject(geometries)
 
     const shapes$ = geometries$.pipe(map(geometries2shapes(convert.from)))
 
-    const plop = core(convert, shapes$)(canvas, mouseCanvas)
+    const plop = core(convert, shapes$)(canvas, mouseCanvas, config)
 
     const refresh = () => geometries$.next(geometries$.getValue())
 

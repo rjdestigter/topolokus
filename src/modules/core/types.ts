@@ -80,7 +80,7 @@ export enum EventTypes {
 }
 
 export type FromPoint = (coordinate: number[]) => Point
-export type ToPoint = (coordinate: Point) => number[]
+export type ToPoint = (coordinate: Point | [number, number]) => number[]
 export type ConvertPoint = { from: FromPoint; to: ToPoint }
 
 export enum SnapType {

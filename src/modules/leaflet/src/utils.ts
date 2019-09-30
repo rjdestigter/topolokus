@@ -26,7 +26,10 @@ export const translateOffsetOfCanvas = (canvas: HTMLCanvasElement) => ([x, y]: [
  * toLngLat :: L.Map -> Point -> (numbr, number)
  * @param canvas
  */
-export const toLngLat = (map: Map) => ([x, y, lng, lat]: Point): [number, number] => {
+export const toLngLat = (map: Map) => ([x, y, lng, lat]: Point | [number, number]): [
+    number,
+    number,
+] => {
     const point = map.layerPointToLatLng([x, y])
     return [lng || point.lng, lat || point.lat]
 }
