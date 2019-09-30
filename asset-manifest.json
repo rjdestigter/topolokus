@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/topolokus/static/css/main.935403ef.chunk.css",
-    "main.js": "/topolokus/static/js/main.7f30808e.chunk.js",
-    "main.js.map": "/topolokus/static/js/main.7f30808e.chunk.js.map",
+    "main.js": "/topolokus/static/js/main.e28b426b.chunk.js",
+    "main.js.map": "/topolokus/static/js/main.e28b426b.chunk.js.map",
     "runtime~main.js": "/topolokus/static/js/runtime~main.a6533723.js",
     "runtime~main.js.map": "/topolokus/static/js/runtime~main.a6533723.js.map",
-    "static/js/2.4f56d9d6.chunk.js": "/topolokus/static/js/2.4f56d9d6.chunk.js",
-    "static/js/2.4f56d9d6.chunk.js.map": "/topolokus/static/js/2.4f56d9d6.chunk.js.map",
+    "static/js/2.1135f414.chunk.js": "/topolokus/static/js/2.1135f414.chunk.js",
+    "static/js/2.1135f414.chunk.js.map": "/topolokus/static/js/2.1135f414.chunk.js.map",
     "index.html": "/topolokus/index.html",
-    "precache-manifest.da6e5c1de8e3b1caf4990d75fd78a4e6.js": "/topolokus/precache-manifest.da6e5c1de8e3b1caf4990d75fd78a4e6.js",
+    "precache-manifest.85fe67f47d2bc835e52a5ba9a86fe78c.js": "/topolokus/precache-manifest.85fe67f47d2bc835e52a5ba9a86fe78c.js",
     "service-worker.js": "/topolokus/service-worker.js",
     "static/css/main.935403ef.chunk.css.map": "/topolokus/static/css/main.935403ef.chunk.css.map"
   }
