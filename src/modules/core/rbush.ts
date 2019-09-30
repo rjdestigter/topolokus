@@ -1,4 +1,3 @@
-import bbox from '@turf/bbox'
 import * as _ from 'lodash'
 
 // @ts-ignore
@@ -6,15 +5,14 @@ import RbushClass from 'rbush/index'
 
 import { Polygon, Point } from './types'
 
-import boundingBox from './utils/bbox'
-import booleanPointInPolygon from './utils/booleanPointInPolygon'
+import { polygon2bbox, booleanPointInPolygon } from './utils'
 
 type RBush<T = {}> = new (...args: any) => rbush.RBush<T>
 
 const RBush: RBush = RbushClass
 
 const polygonToItem = (polygon: Polygon, index: number) =>
-    Object.assign(boundingBox(polygon), { polygon, index })
+    Object.assign(polygon2bbox(polygon), { polygon, index })
 
 type Item = ReturnType<typeof polygonToItem>
 type Tree = rbush.RBush<Item>
@@ -37,7 +35,7 @@ const searchByBoundingBox = (tree: Tree) => (boundingBox: rbush.BBox) => tree.se
 const searchByPoint = (tree: Tree) => {
     const search = searchByBoundingBox(tree)
 
-    return ([x, y]: Point) => {
+    return ([x, y, a, b]: Point) => {
         const items = search({
             minX: x,
             minY: y,
@@ -45,7 +43,7 @@ const searchByPoint = (tree: Tree) => {
             maxY: y,
         })
 
-        return items.filter(item => booleanPointInPolygon([x, y], item.polygon))
+        return items.filter(item => booleanPointInPolygon([x, y, a, b], item.polygon))
     }
 }
 

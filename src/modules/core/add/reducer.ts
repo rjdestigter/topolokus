@@ -4,8 +4,6 @@ import { AddState } from './types'
 import { AddEventTypes } from './events'
 import { Event } from '../events'
 
-import isPolygon from '../utils/isPolygon'
-
 /**
  * Transitions state to the beginning o the "Add polygon" process
  */

@@ -14,7 +14,7 @@ export type Coordinate = number
  * The system preservers the original coordiantes to prevent having
  * to convert them back and forth if they aren't changed.
  */
-export type Point = [Pixel, Pixel, Coordinate, Coordinate] | [Pixel, Pixel]
+export type Point = [Pixel, Pixel, Coordinate, Coordinate]
 
 /**
  * A list of 2- or more [[Point]]s

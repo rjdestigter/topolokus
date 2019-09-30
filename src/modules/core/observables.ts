@@ -1,17 +1,20 @@
 import { fromEvent, Observable } from 'rxjs'
-import { map, filter, tap, mapTo } from 'rxjs/operators'
+import { map, filter, mapTo } from 'rxjs/operators'
 
 import { Event, EventType } from './events'
 
-import { first } from './utils'
+import { mapProp, first } from './utils'
 
-/** Maps an observable of a tuple to an observable of the first element in the tuple */
 export const mapFirst = map(first)
 
 /**
  *
  */
-export const makeEventTypes = (events$: Observable<Event>) => events$.pipe(map(event => event.type))
+export const mapObservableToProp = <K extends string>(k: K) => <T extends { [P in K]: T[K] }>(
+    $: Observable<T>,
+): Observable<T[K]> => $.pipe(map(mapProp(k)))
+
+export const mapObservableToPropType = mapObservableToProp('type')
 
 /**
  *

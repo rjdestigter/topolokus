@@ -5,8 +5,7 @@ import { cancelKey$, enterKey$, ofKeyCode, undoKey$, redoKey$ } from '../observa
 import { AddEventTypes, submitNewPolygon, cancelNewPolygon, addPolygon } from './events'
 import { Point } from '../types'
 import { Event } from '../events'
-import isNotNr from '../utils/isNotNr'
-import { initial, head, tail, first, tuple } from '../utils'
+import { isNotOfTypeNbr, initial, head, tail, first, tuple } from '../utils'
 
 /**
  * Creates a program that will add a point to [[AddState]]'s `.newPolygon`
@@ -105,7 +104,7 @@ export default <T>(
                 ofKeyCode([65, 97]).pipe(take(1)),
                 // Dispatch "AddPolygon" event
                 of(addPolygon()).pipe(tap(dispatch)),
-            ).pipe(filter(isNotNr)),
+            ).pipe(filter(isNotOfTypeNbr)),
             addPolygonEvent$,
         ).pipe(take(1)),
         makeAddPointToPolygon(nextPoint$, dispatch),

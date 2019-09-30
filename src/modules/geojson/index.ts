@@ -1,69 +1,94 @@
+import { of, Subject, BehaviorSubject } from 'rxjs'
+
+// Plop core
 import core from '../core'
 import { Point, ShapeTypes, PolygonShape, Shape, ConvertPoint } from '../core/types'
 
-import { of, Subject } from 'rxjs'
-import geojson from '../../data/nl.json'
-import { tap } from 'rxjs/operators'
-import { Polygon as P, MultiPolygon as M } from '@turf/helpers'
+import { tap, map } from 'rxjs/operators'
+import { FeatureCollection, Feature, Polygon, MultiPolygon } from '@turf/helpers'
 
-const data: typeof geojson.features = geojson.features
+export type Geometry =
+    | Feature<Polygon | MultiPolygon>
+    | FeatureCollection<Polygon | MultiPolygon>
+    | Polygon
+    | MultiPolygon
 
-type G = typeof data[0]['geometry']
+const isPolygon = (geometry: Polygon | MultiPolygon): geometry is Polygon =>
+    geometry.type === 'Polygon'
 
-const isP = (g: G): g is P => g.type === 'Polygon'
-const isM = (g: G): g is M => g.type === 'MultiPolygon'
+const isMultiPolygon = (geometry: Polygon | MultiPolygon): geometry is MultiPolygon =>
+    geometry.type === 'MultiPolygon'
 
-const convertGeoJson = (from: ConvertPoint['from']): PolygonShape<number>[] =>
-    // @ts-ignore
-    data
-        // .filter(feature => true || feature.properties.ZoneID % 2 === 0)
-        .flatMap((feature): Shape<number>[] => {
-            const geom = feature.geometry
+type From = ConvertPoint['from']
+type Ring = Polygon['coordinates'][0]
 
-            if (isP(geom)) {
-                return [
-                    {
-                        type: ShapeTypes.Polygon,
-                        shape: geom.coordinates.map(ring => ring.map(point => from(point))),
+const rand = () => Math.floor(Math.random() * 20) + 1
 
-                        meta: Math.floor(Math.random() * 20) + 1,
-                    },
-                ]
-            } else if (isM(geom)) {
-                return geom.coordinates.map(poly => {
-                    return {
-                        type: ShapeTypes.Polygon,
-                        shape: poly.map(ring => ring.map(point => from(point))),
-                        meta: Math.floor(Math.random() * 20) + 1,
-                    }
-                })
-            }
-            return []
-        })
+const ring2points = (from: From) => ([, ...ring]: Ring) => ring.map(([x, y]) => from([x, y]))
 
-export default (convert: ConvertPoint) => (canvas: HTMLCanvasElement, mouseCanvas = canvas) => {
-    const shapes$ = new Subject<PolygonShape<number>[]>()
+const polygon2shape = (from: From) => <G extends Polygon>(polygon: G): PolygonShape<number> => ({
+    type: ShapeTypes.Polygon,
+    shape: polygon.coordinates.map(ring2points(from)),
+    meta: rand(),
+})
 
-    const api = core(convert, shapes$)(canvas, mouseCanvas)
+const multiPolygon2shapes = (from: From) => <G extends MultiPolygon>(
+    multiPolygon: G,
+): PolygonShape<number>[] =>
+    multiPolygon.coordinates.map(polygon => ({
+        type: ShapeTypes.Polygon,
+        shape: polygon.map(ring2points(from)),
+        meta: rand(),
+    }))
 
-    const refresh = () => shapes$.next(convertGeoJson(convert.from))
+const feature2shapes = (from: From) => <G extends Feature<MultiPolygon | Polygon>>(
+    feature: G,
+): PolygonShape<number>[] =>
+    isPolygon(feature.geometry)
+        ? [polygon2shape(from)(feature.geometry)]
+        : multiPolygon2shapes(from)(feature.geometry)
 
-    api.api.onAdd$
+const featureCollection2shapes = (from: From) => <
+    G extends FeatureCollection<MultiPolygon | Polygon>
+>(
+    featureCollection: G,
+): PolygonShape<number>[] => featureCollection.features.flatMap(feature2shapes(from))
+
+const geometry2shapes = (from: From) => (geometry: Geometry) =>
+    geometry.type === 'FeatureCollection'
+        ? featureCollection2shapes(from)(geometry)
+        : geometry.type === 'Feature'
+        ? feature2shapes(from)(geometry)
+        : isMultiPolygon(geometry)
+        ? multiPolygon2shapes(from)(geometry)
+        : [polygon2shape(from)(geometry)]
+
+export const geometries2shapes = (from: From) => (geometries: Geometry[]) =>
+    geometries.flatMap(geometry2shapes(from))
+
+export default (convert: ConvertPoint) => (
+    canvas: HTMLCanvasElement,
+    mouseCanvas: HTMLCanvasElement,
+) => (geometries: Geometry[]) => {
+    const geometries$ = new BehaviorSubject(geometries)
+
+    const shapes$ = geometries$.pipe(map(geometries2shapes(convert.from)))
+
+    const plop = core(convert, shapes$)(canvas, mouseCanvas)
+
+    const refresh = () => geometries$.next(geometries$.getValue())
+
+    plop.api.onAdd$
         .pipe(
             tap(event => {
                 const coordinates = event.payload[0].map(px => convert.to(px))
                 coordinates.push(coordinates[0])
-                data.push({
-                    type: 'Feature',
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [coordinates],
-                    },
-                    // @ts-ignore
-                    properties: {
-                        // ZoneID: 2,
-                    },
-                })
+                const polygon: Polygon = {
+                    type: 'Polygon',
+                    coordinates: [coordinates],
+                }
+
+                geometries$.next([...geometries$.getValue(), polygon])
 
                 refresh()
             }),
@@ -72,5 +97,5 @@ export default (convert: ConvertPoint) => (canvas: HTMLCanvasElement, mouseCanva
 
     refresh()
 
-    return Object.assign(api, { refresh })
+    return Object.assign(plop, { refresh })
 }

@@ -1,18 +1,37 @@
 import { Polygon, Point, Line } from '../types'
-import boundingBox from './bbox'
-import inBBox from './inBbox'
+import { isInBBox } from './assert'
 
-export default function booleanPointInPolygon(
+export const polygon2bbox = (polygon: Polygon) =>
+    polygon[0].reduce(
+        (acc, [x, y]) => {
+            if (x < acc.minX) acc.minX = x
+            if (y < acc.minY) acc.minY = y
+            if (acc.maxX === Infinity || x > acc.maxX) acc.maxX = x
+            if (acc.maxY === Infinity || y > acc.maxY) acc.maxY = y
+            return acc
+        },
+        {
+            minX: Infinity,
+            minY: Infinity,
+            maxX: Infinity,
+            maxY: Infinity,
+        },
+    )
+
+/**
+ *
+ */
+export function booleanPointInPolygon(
     point: Point,
     polygon: Polygon,
     options: {
         ignoreBoundary?: boolean
     } = {},
 ) {
-    const bbox = boundingBox(polygon)
+    const bbox = polygon2bbox(polygon)
 
     // Quick elimination if point is not inside bbox
-    if (inBBox(point, bbox) === false) {
+    if (isInBBox(point, bbox) === false) {
         return false
     }
 
@@ -64,3 +83,11 @@ function inRing(point: Point, ring: Line, ignoreBoundary?: boolean) {
 
     return isInside
 }
+
+export const mapMouseEventToOffset = (evt: MouseEvent): [number, number] => [
+    evt.offsetX,
+    evt.offsetY,
+]
+
+export const mapProp = <K extends string>(prop: K) => <T extends { [P in K]: T[K] }>(obj: T) =>
+    obj[prop]

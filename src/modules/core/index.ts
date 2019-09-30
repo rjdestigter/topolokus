@@ -1,4 +1,13 @@
-import { fromEvent, merge, Subject, Observable, of, combineLatest, observable } from 'rxjs'
+import {
+    fromEvent,
+    merge,
+    Subject,
+    Observable,
+    of,
+    combineLatest,
+    observable,
+    BehaviorSubject,
+} from 'rxjs'
 import {
     map,
     tap,
@@ -20,11 +29,11 @@ import createPolyBush from './rbush'
 import nearestPointOnLine from '@turf/nearest-point-on-line'
 
 import { StateType, State, Point, Shape, ShapeTypes, ConvertPoint, Snap, SnapType } from './types'
-import mapMouseEventToCoords from './utils/mapMouseEventToCoords'
+import { mapMouseEventToOffset } from './utils'
 import pencil_ from './pencils'
 import { Event } from './events'
 import transition from './reducers'
-import { mapFirst, ofKeyCode, makeFromEventType, makeEventTypes } from './observables'
+import { mapFirst, ofKeyCode, makeFromEventType, mapObservableToPropType } from './observables'
 import {
     convertShapesToListOfPoints,
     filterPolygonShapes,
@@ -39,7 +48,6 @@ import makeAddPolygonProgram from './add/observables'
 import { isPolygonShape } from './utils'
 import { toMulticast } from './legacy/observables'
 import { findLineSnapPosition } from './legacy/utils'
-import { point } from 'leaflet'
 
 ofKeyCode([120, 88]).subscribe(() => console.clear())
 
@@ -53,12 +61,13 @@ const translateOffsetOfCanvas = (canvas: HTMLCanvasElement) => ([x, y]: [
         .map(str => +str)
         .filter(n => !isNaN(n))
 
+    // @ts-ignore
     return [x + tx, y + ty] as [number, number]
 }
 
 export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
     canvas: HTMLCanvasElement,
-    mouseCanvas = canvas,
+    mouseCanvas: HTMLCanvasElement,
 ) => {
     const ctx = canvas.getContext('2d')
     const mouseCtx = mouseCanvas.getContext('2d')
@@ -69,6 +78,7 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
     if (mousePencil && pencil && ctx != null && mouseCtx != null) {
         canvas.style.cursor = 'none'
         mouseCanvas.style.cursor = 'none'
+
         /**
          * Final API for drawing markers, polygons, and lines.
          */
@@ -78,12 +88,14 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
          * the system and used to find points that are near the mouse
          * position to snap to.
          */
-        let pointsDb: KDBush.KDBush<Point> =
+        const pointsDb$ = new BehaviorSubject(
             // @ts-ignore
-            new KDBush([])
+            new KDBush([]) as KDBush.KDBush<Point>,
+        )
 
-        const polyDb = createPolyBush()
-        let lineDb: [Point, Point][] = []
+        const polyDb$ = new BehaviorSubject(createPolyBush())
+
+        const lineDb$ = new BehaviorSubject([] as [Point, Point][])
 
         /**
          * Observable for emitting events
@@ -93,7 +105,7 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
         /**
          * Observable emits all event types that are dispatched
          */
-        const eventTypes$ = makeEventTypes(events$)
+        const eventTypes$ = mapObservableToPropType(events$.asObservable())
 
         /**
          * Creates an observable that filters events by type
@@ -111,22 +123,20 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
         const stateUpdates$ = new Subject<[State<T>, State<T>]>()
 
         /**
-         * Filters state updates by checking if state has actually changed
-         */
-        const stateChanges$ = stateUpdates$.pipe(filter(([c, p]) => c !== p))
-
-        /**
          * Maps state changes to actual state
          */
-        const state$ = stateUpdates$.pipe(mapFirst)
+        // const state$ = stateUpdates$.pipe(mapFirst)
 
         /**
          * Finds the nearest point a given point can snap to
          */
 
-        const mapPointToSnapFn$ = shapes$.pipe(
-            startWith([]),
-            map(shapes => ([x, y, lng, lat]: Point): Snap => {
+        const mapPointToSnapFn$ = combineLatest(
+            shapes$.pipe(startWith([])),
+            pointsDb$,
+            lineDb$,
+        ).pipe(
+            map(([shapes, pointsDb, lineDb]) => ([x, y, lng, lat]: Point): Snap => {
                 const pointSnap = convertShapesToListOfPoints(shapes)[pointsDb.within(x, y, 10)[0]]
 
                 if (pointSnap) {
@@ -168,15 +178,19 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
          *
          */
         const updatePointsDb$ = shapes$.pipe(
-            tap(shapes => {
+            withLatestFrom(polyDb$),
+            tap(([shapes, polyDb]) => {
                 const polygons = filterPolygonShapes(shapes).map(item => item.shape)
-                lineDb = convertShapesToListOfLines(shapes)
+                lineDb$.next(convertShapesToListOfLines(shapes))
                 polyDb.replace(polygons)
             }),
+            mapFirst,
             map(convertShapesToListOfPoints),
             tap(points => {
-                // @ts-ignore
-                pointsDb = new KDBush(points)
+                pointsDb$.next(
+                    // @ts-ignore
+                    new KDBush(points),
+                )
             }),
         )
 
@@ -192,16 +206,17 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
         }
 
         const mouseClick$ = fromEvent<MouseEvent>(mouseCanvas, 'click')
-        const mouseClickOffset$ = mouseClick$.pipe(map(e => mapMouseEventToCoords(e)))
+        const mouseClickOffset$ = mouseClick$.pipe(map(e => mapMouseEventToOffset(e)))
 
         const translatedMouseClick$ = mouseClickOffset$.pipe(map(translateOffset))
+
         const snappedClick$ = translatedMouseClick$.pipe(
             withLatestFrom(mapPointToSnapFn$),
             map(([point, mapPointToSnap]) => mapPointToSnap(point)),
         )
 
         const mouseMove$ = fromEvent<MouseEvent>(mouseCanvas, 'mousemove')
-        const mouseMoveOffset$ = mouseMove$.pipe(map(e => mapMouseEventToCoords(e)))
+        const mouseMoveOffset$ = mouseMove$.pipe(map(e => mapMouseEventToOffset(e)))
         const translatedMousemMove$ = mouseMoveOffset$.pipe(map(translateOffset))
 
         const mousePositionSnapped$ = toMulticast(
@@ -220,7 +235,8 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
         const mousePositionSnappedPoint$ = mousePositionSnapped$.pipe(map(({ point }) => point))
 
         const hoverIndex$ = translatedMousemMove$.pipe(
-            map(point => polyDb.searchPoint(point).map(item => item.index)),
+            withLatestFrom(polyDb$),
+            map(([point, polyDb]) => polyDb.searchPoint(point).map(item => item.index)),
             scan((acc, next) => [acc[1], next] as const, [[], []] as readonly [number[], number[]]),
             filter(([a, b]) => a.length !== b.length || a.some((n, index) => n !== b[index])),
             map(([, b]) => b),
