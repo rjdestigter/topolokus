@@ -45,7 +45,7 @@ import createPolyBush from './rbush'
 import nearestPointOnLine from '@turf/nearest-point-on-line'
 
 import { StateType, State, Point, Shape, ShapeTypes, ConvertPoint, Snap, SnapType } from './types'
-import { mapMouseEventToOffset, second, first } from './utils'
+import { mapMouseEventToOffset, second, first, head, error } from './utils'
 import createPencil from './pencils'
 import { Event } from './events'
 import { mapFirst, ofKeyCode, makeFromEventType, mapObservableToPropType } from './observables'
@@ -249,7 +249,24 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
             scan((acc, next) => [acc[1], next] as const, [[], []] as readonly [number[], number[]]),
             filter(([a, b]) => a.length !== b.length || a.some((n, index) => n !== b[index])),
             map(([, b]) => b),
+            shareReplay(1),
         )
+
+        const selected$ = concat(
+            mouseClick$.pipe(
+                warn,
+                withLatestFrom(hoverIndex$),
+                map(second),
+                map(head),
+                takeUntil(fromEventType(AddEventTypes.AddPolygon)),
+                startWith(undefined),
+                endWith(undefined),
+            ),
+            fromEventType('Noop').pipe(
+                take(1),
+                mapTo(undefined as number | undefined),
+            ),
+        ).pipe(repeat())
 
         const add$ = makeAddPolygonProgram({
             pencil: mousePencil,
@@ -269,9 +286,10 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
         const draw$ = combineLatest(
             shapes$.pipe(startWith([] as Shape<T>[])),
             hoverIndex$.pipe(startWith([] as number[])),
+            selected$,
         ).pipe(
             tap(data => {
-                const [shapes, hoverIndices] = data
+                const [shapes, hoverIndices, selectedIndex] = data
 
                 pencil.resetStyles()
 
@@ -281,10 +299,25 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
                 // Draw existing polygons
                 const polygons = filterPolygonShapes(shapes)
                 polygons.forEach((shape, index) => {
-                    const hovering = hoverIndices.includes(index)
-                    pencil.polygon({ ...shape, meta: { hovering, id: shape.meta } })
+                    const isHovering = hoverIndices.includes(index)
+                    const isSelected = selectedIndex === index
+                    pencil.polygon({ ...shape, meta: { isHovering, isSelected, id: shape.meta } })
                     pencil.resetStyles()
                 })
+
+                if (selectedIndex != null) {
+                    const selectedPolygon = polygons[selectedIndex]
+
+                    selectedPolygon.shape.map(ring =>
+                        ring.map(point =>
+                            pencil.marker({
+                                type: ShapeTypes.Point,
+                                meta: selectedPolygon.meta,
+                                shape: point,
+                            }),
+                        ),
+                    )
+                }
             }),
         )
 

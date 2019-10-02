@@ -17,11 +17,10 @@ import { cancelKey$, enterKey$, undoKey$, redoKey$ } from '../observables'
 import { AddEventTypes, AddEvent } from './events'
 import { Point, Snap, FromPoint, Shape } from '../types'
 import { Event } from '../events'
-import { initial, head, tail, first, tuple, second } from '../utils'
+import { initial, head, tail, first, tuple, second, isNotEmpty } from '../utils'
 import { Pencil } from '../pencils'
 
 import createPencil from './pencil'
-import { create } from 'domain'
 
 /**
  * Creates a program for adding new polygons.
@@ -81,7 +80,7 @@ export default <T>({
                           ...redoPoints,
                       ])
                     : // else if
-                    event.type === 'redo' && redoPoints.length > 0
+                    event.type === 'redo' && isNotEmpty(redoPoints)
                     ? // then
                       tuple([...currentPoints, head(redoPoints)], tail(redoPoints))
                     : // else if

@@ -14,7 +14,9 @@ export const tail = <T>(xs: T[]) => {
 }
 
 /** Retrun the first element in an array. */
-export const head = <T>(xs: T[]) => {
+export const head = <T extends any[]>(
+    xs: T,
+): T extends [infer U, ...any[]] ? T[0] : T[0] | undefined => {
     const [h] = xs
     return h
 }
@@ -24,6 +26,8 @@ export const last = <T>(xs: T[]) => {
     const [l] = [...xs].reverse()
     return l
 }
+
+export const isNotEmpty = <T>(array: T[]): array is [T, ...T[]] => array.length > 0
 
 export const returnEmptyArray = <T>(value: T): T =>
     Array.isArray(value) && value.length <= 0 ? (emptyArray as any) : value
