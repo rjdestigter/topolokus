@@ -1,5 +1,5 @@
-import { AddEvent, AddEventTypes } from './add/events'
+import { AddEvent } from './add/events'
 
-export type Event = AddEvent
+export type Event = AddEvent | { type: 'Noop' }
 
-export type EventType = AddEventTypes
+export type EventType = Event['type']

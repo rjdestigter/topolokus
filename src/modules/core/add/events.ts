@@ -5,7 +5,6 @@ import { Point, Polygon } from '../types'
  */
 export enum AddEventTypes {
     AddPolygon = 'AddPolygon',
-    AddPointToNewPolygon = 'AddPointToNewPolygon',
     SubmitNewPolygon = 'SubmitNewPolygon',
     CancelNewPolygon = 'CancelNewPolygon',
 }
@@ -18,19 +17,10 @@ export type AddPolygonEvent = {
 }
 
 /**
- * Event dispatched when the user clicks on the canvas to add a new point to the polygon they are creating.
- */
-export type AddPointToNewPolygonEvent = {
-    type: AddEventTypes.AddPointToNewPolygon
-    payload: Point
-}
-
-/**
  * Event dispatched when the user has finished creating a new polygon.
  */
 export type SubmitNewPolygonEvent = {
     type: AddEventTypes.SubmitNewPolygon
-    payload: Polygon
 }
 
 /**
@@ -43,11 +33,7 @@ export type CancelNewPolygonEvent = {
 /**
  * All possible events for the "Add poloygon" process
  */
-export type AddEvent =
-    | AddPolygonEvent
-    | AddPointToNewPolygonEvent
-    | SubmitNewPolygonEvent
-    | CancelNewPolygonEvent
+export type AddEvent = AddPolygonEvent | SubmitNewPolygonEvent | CancelNewPolygonEvent
 
 /**
  * Event creator instructing the program the user wants to create a new polygon.
@@ -55,19 +41,10 @@ export type AddEvent =
 export const addPolygon = (): AddPolygonEvent => ({ type: AddEventTypes.AddPolygon })
 
 /**
- * Event creator instructing the program to add a new point to the new polygon.
- */
-export const addPointToNewPolygon = (point: Point): AddPointToNewPolygonEvent => ({
-    type: AddEventTypes.AddPointToNewPolygon,
-    payload: point,
-})
-
-/**
  * Event creator instructing the program the user has finished creating a new polygon.
  */
-export const submitNewPolygon = (polygon: Polygon): SubmitNewPolygonEvent => ({
+export const submitNewPolygon = (): SubmitNewPolygonEvent => ({
     type: AddEventTypes.SubmitNewPolygon,
-    payload: polygon,
 })
 
 /**

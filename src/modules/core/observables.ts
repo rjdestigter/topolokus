@@ -16,10 +16,13 @@ export const mapObservableToProp = <K extends string>(k: K) => <T extends { [P i
 
 export const mapObservableToPropType = mapObservableToProp('type')
 
+type EventTypes = Event['type']
 /**
  *
  */
-export const makeFromEventType = (eventTypes$: Observable<Event['type']>) => <T extends EventType>(
+export const makeFromEventType = <E extends EventTypes>(eventTypes$: Observable<E>) => <
+    T extends E
+>(
     eventType: T,
 ) =>
     eventTypes$.pipe(

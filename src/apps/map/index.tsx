@@ -21,6 +21,8 @@ const Canvas = () => {
         if (context.map != null) {
             const plop = plopLeaflet(context.map, { pane: context.pane })([data])
 
+            // plop.observables.
+
             return plop.unsubscribe
         }
     }, [

@@ -7,6 +7,9 @@ import {
     combineLatest,
     observable,
     BehaviorSubject,
+    concat,
+    race,
+    empty,
 } from 'rxjs'
 import {
     map,
@@ -21,6 +24,18 @@ import {
     mergeMap,
     withLatestFrom,
     share,
+    ignoreElements,
+    last,
+    takeUntil,
+    endWith,
+    take,
+    mergeMapTo,
+    mergeAll,
+    delay,
+    publishBehavior,
+    refCount,
+    publishReplay,
+    shareReplay,
 } from 'rxjs/operators'
 
 import KDBush from 'kdbush'
@@ -30,8 +45,8 @@ import createPolyBush from './rbush'
 import nearestPointOnLine from '@turf/nearest-point-on-line'
 
 import { StateType, State, Point, Shape, ShapeTypes, ConvertPoint, Snap, SnapType } from './types'
-import { mapMouseEventToOffset } from './utils'
-import pencil_ from './pencils'
+import { mapMouseEventToOffset, second, first } from './utils'
+import createPencil from './pencils'
 import { Event } from './events'
 import { mapFirst, ofKeyCode, makeFromEventType, mapObservableToPropType } from './observables'
 import {
@@ -45,7 +60,7 @@ import {
 import { AddState } from './add/types'
 import { addPolygon, AddEventTypes, SubmitNewPolygonEvent } from './add/events'
 import makeAddPolygonProgram from './add/observables'
-import { isPolygonShape } from './utils'
+import { isPolygonShape, warn } from './utils'
 import { toMulticast } from './legacy/observables'
 import { findLineSnapPosition } from './legacy/utils'
 
@@ -60,8 +75,8 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
 ) => {
     const ctx = canvas.getContext('2d')
     const mouseCtx = mouseCanvas.getContext('2d')
-    const pencil = pencil_()(canvas)
-    const mousePencil = pencil_()(mouseCanvas)
+    const pencil = createPencil()(canvas)
+    const mousePencil = createPencil()(mouseCanvas)
 
     /**
      *
@@ -112,8 +127,11 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
         /**
          * Dispatches events
          */
-        const dispatch = (event: Event) => events$.next(event)
+        const dispatch = (event: Event) => {
+            events$.next(event)
+        }
 
+        const dispatchEvent = <E extends Event>($: Observable<E>) => $.pipe(tap(dispatch))
         /**
          * Observable streaming current and previous state
          */
@@ -133,42 +151,37 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
             pointsDb$,
             lineDb$,
         ).pipe(
-            map(([shapes, pointsDb, lineDb]) => ([x, y, lng, lat]: Point): Snap => {
-                const pointSnap = convertShapesToListOfPoints(shapes)[pointsDb.within(x, y, 10)[0]]
+            map(([shapes, pointsDb, lineDb]) => {
+                return ([x, y, lng, lat]: Point): Snap => {
+                    const pointSnap = convertShapesToListOfPoints(shapes)[
+                        pointsDb.within(x, y, 10)[0]
+                    ]
 
-                if (pointSnap) {
-                    return { type: SnapType.Point, point: pointSnap }
-                }
+                    if (pointSnap) {
+                        return { type: SnapType.Point, point: pointSnap }
+                    }
 
-                const lineSnap = findLineSnapPosition([x, y, lng!, lat!], lineDb as any)
+                    const lineSnap = findLineSnapPosition([x, y, lng!, lat!], lineDb as any)
 
-                if (lineSnap) {
-                    const multiLineString = convertListOfLinesToLineString(lineDb)
-                    const maybePoint = nearestPointOnLine(multiLineString, [lng, lat])
+                    if (lineSnap) {
+                        const multiLineString = convertListOfLinesToLineString(lineDb)
+                        const maybePoint = nearestPointOnLine(multiLineString, [lng, lat])
 
-                    if (maybePoint) {
-                        const [sx, sy] = convert.from(maybePoint.geometry.coordinates)
-                        return {
-                            distance: 4,
-                            line: (lineSnap.line as any) as [Point, Point],
-                            type: SnapType.Line,
-                            point: [sx, sy, ...maybePoint.geometry.coordinates] as any, // [lineSnap.point[0], lineSnap.point[1], lng, lat] as Point,
+                        if (maybePoint) {
+                            const [sx, sy] = convert.from(maybePoint.geometry.coordinates)
+                            return {
+                                distance: 4,
+                                line: (lineSnap.line as any) as [Point, Point],
+                                type: SnapType.Line,
+                                point: [sx, sy, ...maybePoint.geometry.coordinates] as any, // [lineSnap.point[0], lineSnap.point[1], lng, lat] as Point,
+                            }
                         }
                     }
-                    // console.log(snap)
 
-                    // const [x, y] = lineSnap.point
-                    // const [lng, lat] = convert.to(lineSnap.point)
-                    // return {
-                    //     distance: 4,
-                    //     line: (lineSnap.line as any) as [Point, Point],
-                    //     type: SnapType.Line,
-                    //     point: [x, y, lng, lat], // [lineSnap.point[0], lineSnap.point[1], lng, lat] as Point,
-                    // }
+                    return { type: SnapType.None, point: [x, y, lng, lat] as Point }
                 }
-
-                return { type: SnapType.None, point: [x, y, lng, lat] as Point }
             }),
+            shareReplay(1),
         )
 
         /**
@@ -218,10 +231,16 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
             }),
             withLatestFrom(mapPointToSnapFn$),
             map(([point, mapPointToSnap]) => mapPointToSnap(point)),
-            share(),
+            // shareReplay(1),
+            // publishBehavior({ type: 'M', point: [0, 0, 0, 0] } as Snap),
+            // refCount(),
+            // share(),
+            // shareReplay(1),
+            shareReplay(1),
         )
+        // .pipe(shareReplay(1))
 
-        const mousePositionSnappedPoint$ = mousePositionSnapped$.pipe(map(({ point }) => point))
+        // const mousePositionSnappedPoint$ = mousePositionSnapped$.pipe(map(({ point }) => point))
 
         const hoverIndex$ = translatedMousemMove$.pipe(
             map(toPoint),
@@ -232,15 +251,20 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
             map(([, b]) => b),
         )
 
-        const addPolygonProgram$ = makeAddPolygonProgram(
-            // snappedClick$.pipe(map(({ point }) => point)),
-            mouseClick$.pipe(
-                withLatestFrom(mousePositionSnappedPoint$),
-                map(([, point]) => point),
+        const add$ = makeAddPolygonProgram({
+            pencil: mousePencil,
+            mouseCtx,
+            from: convert.from,
+            shapes$,
+            mouseMove$: mousePositionSnapped$,
+            mouseClick$: mouseClick$.pipe(
+                withLatestFrom(mousePositionSnapped$),
+                map(second),
+                map(snap => snap.point),
             ),
-            fromEventType(AddEventTypes.AddPolygon),
-            dispatch,
-        ).pipe(repeat())
+            dispatchEvent,
+            fromEventType,
+        })
 
         const draw$ = combineLatest(
             shapes$.pipe(startWith([] as Shape<T>[])),
@@ -264,82 +288,60 @@ export default <T>(convert: ConvertPoint, shapes$: Observable<Shape<T>[]>) => (
             }),
         )
 
-        const subscription = merge(
-            updatePointsDb$,
-            draw$,
-            combineLatest(
-                mousePositionSnapped$,
-                combineLatest(shapes$, addPolygonProgram$.pipe(startWith([] as Point[]))).pipe(
-                    map(([, points]) =>
-                        points.map(point => {
-                            const [, , lng, lat] = point
-                            if (lng != null && lat != null) {
-                                const [x, y] = convert.from([lng, lat])
+        const clear$ = mousePositionSnapped$.pipe(
+            tap(snap => {
+                mousePencil.eraser()
+                mousePencil.cursor(snap)
+            }),
+            ignoreElements(),
+        )
 
-                                return [x, y, lng, lat] as Point
-                            }
+        const addShortCutKey$ = ofKeyCode([65, 97]).pipe(
+            mapTo({ type: AddEventTypes.AddPolygon }),
+            dispatchEvent,
+            ignoreElements(),
+        )
 
-                            return point
-                        }),
-                    ),
-                ),
-            ).pipe(
-                tap(([mousePosition, newPolygon]) => {
-                    mousePencil.eraser()
+        const noop$ = of({ type: 'Noop' as const }).pipe(
+            dispatchEvent,
+            ignoreElements(),
+        )
 
-                    // Draw potential new polygon
-                    // if (state.value === StateType.AddPolygon) {
-                    if (newPolygon.length > 1) {
-                        mousePencil.polygon({
-                            type: ShapeTypes.Polygon,
-                            shape: [[...newPolygon, mousePosition.point]],
-                            // TODO Provide a way to create T for new polygons
-                            meta: { id: -1, hovering: true },
-                        })
-
-                        mousePencil.resetStyles()
-                    } else if (newPolygon.length === 1) {
-                        mousePencil.line({
-                            type: ShapeTypes.Line,
-                            shape: [...newPolygon, mousePosition.point],
-                            meta: (undefined as any) as T,
-                        })
-                        pencil.resetStyles()
+        const core$ = merge(
+            addShortCutKey$,
+            of(void 0),
+            fromEventType('Noop'),
+            fromEventType(AddEventTypes.AddPolygon),
+        ).pipe(
+            warn,
+            switchMap(event => {
+                switch (event) {
+                    case AddEventTypes.AddPolygon: {
+                        return concat(add$, noop$)
                     }
-
-                    newPolygon.forEach(point =>
-                        mousePencil.marker({
-                            type: ShapeTypes.Point,
-                            shape: point,
-                            meta: {},
-                        }),
-                    )
-
-                    if (mousePosition.type === SnapType.Line) {
-                        mouseCtx.beginPath()
-                        mouseCtx.moveTo(mousePosition.line[0][0], mousePosition.line[0][1])
-                        mouseCtx.lineTo(mousePosition.line[1][0], mousePosition.line[1][1])
-                        mouseCtx.strokeStyle = 'Cyan'
-                        mouseCtx.stroke()
-                        // ctx
+                    default: {
+                        return clear$
                     }
-                    mousePencil.cursor(mousePosition)
-                }),
-            ),
-        ).subscribe()
+                }
+            }),
+            // share(),
+        )
+
+        const plop$ = merge(
+            merge(updatePointsDb$, draw$ /* drawNewPolygon$, */).pipe(ignoreElements()),
+            core$,
+            // cursor$,
+        ).pipe(share())
+
+        // const subscription = plop$.subscribe()
 
         return {
             done: () => {
-                subscription.unsubscribe()
+                // subscription.unsubscribe()
             },
+            subscribe: ((...args: any[]) => plop$.subscribe(...args)) as typeof plop$.subscribe,
             api: {
-                addPolygon: () => dispatch(addPolygon()),
-                onAdd$: events$.pipe(
-                    filter(
-                        (event): event is SubmitNewPolygonEvent =>
-                            event.type === AddEventTypes.SubmitNewPolygon,
-                    ),
-                ),
+                add: () => dispatch(addPolygon()),
             },
         }
     }

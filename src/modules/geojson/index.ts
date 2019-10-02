@@ -81,24 +81,15 @@ export default (convert: ConvertPoint) => (
 
     const refresh = () => geometries$.next(geometries$.getValue())
 
-    plop.api.onAdd$
-        .pipe(
-            tap(event => {
-                const coordinates = event.payload[0].map(px => convert.to(px))
-                coordinates.push(coordinates[0])
-                const polygon: Polygon = {
-                    type: 'Polygon',
-                    coordinates: [coordinates],
-                }
-
-                geometries$.next([...geometries$.getValue(), polygon])
-
-                refresh()
-            }),
-        )
-        .subscribe()
-
-    refresh()
+    plop.subscribe(event => {
+        const coordinates = event.payload.map(convert.to)
+        coordinates.push(coordinates[0])
+        const polygon: Polygon = {
+            type: 'Polygon',
+            coordinates: [coordinates],
+        }
+        geometries$.next([...geometries$.getValue(), polygon])
+    })
 
     return Object.assign(plop, { refresh })
 }

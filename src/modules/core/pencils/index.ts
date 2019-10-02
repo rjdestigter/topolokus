@@ -13,7 +13,7 @@ interface Api {
     resetStyles: typeof defaultResetStyles
 }
 
-export default (api: Partial<Api> = {}) => (canvas: HTMLCanvasElement) => {
+export const createPencil = (api: Partial<Api> = {}) => (canvas: HTMLCanvasElement) => {
     const ctx = canvas.getContext('2d')
 
     if (ctx) {
@@ -40,4 +40,10 @@ export default (api: Partial<Api> = {}) => (canvas: HTMLCanvasElement) => {
             },
         }
     }
+
+    throw '1'
 }
+
+export type Pencil = ReturnType<ReturnType<typeof createPencil>>
+
+export default createPencil

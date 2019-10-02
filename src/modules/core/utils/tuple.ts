@@ -6,3 +6,6 @@ export const first = <A>([a]: [A, any]): A => a
 
 /** Returns the second element of a tuple */
 export const second = <B>([, b]: [any, B]): B => b
+
+/** Flipts the tuple */
+export const flipTuple = <A, B>([a, b]: [A, B]) => tuple(b, a)
